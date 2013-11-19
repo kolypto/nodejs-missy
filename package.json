@@ -1,0 +1,37 @@
+{
+  "name": "missy",
+  "description": "Slim & sexy, universal ORM",
+  "version": "0.0.1",
+  
+  "author": "kolypto <kolypto@gmail.com>",
+  "license": "MIT",
+  "maintainers": [
+    "kolypto <kolypto@gmail.com>"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:kolypto/nodejs-missy.git"
+  },
+  
+  "main": "./lib/index",
+  "keywords": [
+    "orm","odm",
+    "data-mapper",
+    "postgresql",
+    "mongodb"
+  ],
+  
+  "dependencies": {
+    "lodash": "2.3.x"
+  },
+  "devDependencies": {
+    "nodeunit": "0.8.x"
+  },
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  
+  "scripts": {
+    "test": "./node_modules/.bin/nodeunit tests/*-test.js"
+  }
+}
