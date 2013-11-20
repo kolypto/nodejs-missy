@@ -4,7 +4,7 @@ var Q = require('q'),
     _ = require('lodash'),
     Schema = require('../lib').Schema,
     MemoryDriver = require('../lib').drivers.MemoryDriver,
-    modelUtil = require('../lib/util/model'),
+    u = require('../lib/util'),
     types = require('../lib/types'),
     errors = require('../lib/errors')
     ;
@@ -58,8 +58,7 @@ exports.testConverter = function(test){
     test.deepEqual(User.options, {
         table: 'users', // generated: lowercase + plural
         pk: [ 'id' ], // default
-        required: false, // default
-        hooks: {}  // default
+        required: false // default
     });
     test.deepEqual(Object.keys(User.fields), ['id','name','login','ctime','obj','roles','json','any', 'smile']);
     test.deepEqual(User.fields.id, { name: 'id', type: 'number', required: false, _model: User, _typeHandler: schema.types['number'] });
@@ -78,94 +77,125 @@ exports.testConverter = function(test){
     test.deepEqual(Profile.options, {
         table: 'user_profiles', // override
         pk: [ 'user_id', 'name' ], // override
-        required: true, // override
-        hooks: {}  // default
+        required: true // override
     });
 
     // Test converter: Load
-    test.deepEqual(User.entityLoading({  }), {  }); // empty object ok
+    var testEntityLoading = function(entity, expected){
+        User.entityLoading(entity)
+            .then(function(entity){
+                test.deepEqual(entity, expected);
+            })
+            .catch(function(err){
+                test.ok(false);
+            }).done();
+    };
 
-    test.deepEqual(User.entityLoading({ aaaaa: {a:1} }), { aaaaa: {a:1} }); // custom properties ok
+    testEntityLoading({  }, {  }); // empty object ok
 
-    test.deepEqual(User.entityLoading({ id: 0.1 }), { id: 0.1 }); // number convertion
-    test.deepEqual(User.entityLoading({ id: '0' }), { id: 0 }); // number convertion
+    testEntityLoading({ aaaaa: {a:1} }, { aaaaa: {a:1} }); // custom properties ok
 
-    test.deepEqual(User.entityLoading({ name: '1' }), { name: '1' }); // string convertion
-    test.deepEqual(User.entityLoading({ name: [1,2,3] }), { name: '1,2,3' }); // string convertion
+    testEntityLoading({ id: 0.1 }, { id: 0.1 }); // number convertion
+    testEntityLoading({ id: '0' }, { id: 0 }); // number convertion
 
-    test.deepEqual(User.entityLoading({ login: undefined }), { login: '' }); // forced string convertion
-    test.deepEqual(User.entityLoading({ login: null }), { login: '' }); // forced string convertion
-    test.deepEqual(User.entityLoading({ login: 'kolypto' }), { login: 'kolypto' }); // ok string convertion
+    testEntityLoading({ name: '1' }, { name: '1' }); // string convertion
+    testEntityLoading({ name: [1,2,3] }, { name: '1,2,3' }); // string convertion
+
+    testEntityLoading({ login: undefined }, { login: '' }); // forced string convertion
+    testEntityLoading({ login: null }, { login: '' }); // forced string convertion
+    testEntityLoading({ login: 'kolypto' }, { login: 'kolypto' }); // ok string convertion
 
     var now = new Date();
-    test.deepEqual(User.entityLoading({ ctime: undefined }).ctime.getMonth(), now.getMonth()); // default
-    test.deepEqual(User.entityLoading({ ctime: now }), { ctime: now }); // ok
-    test.deepEqual(User.entityLoading({ ctime: 1000 }), { ctime: new Date('Thu Jan 01 1970 02:00:01 GMT+0200 (EET)') }); // converted
-    test.deepEqual(User.entityLoading({ ctime: '2012-03-04 15:16:17' }), { ctime: new Date('Sun Mar 04 2012 15:16:17 GMT+0200 (EET)') }); // converted
+    User.entityLoading({ ctime: undefined })
+        .then(function(entity){
+            test.equal(entity.ctime.getDay(), now.getDay()); // default
+        }).catch(function(e){
+            test.equal(e, undefined);
+        });
 
-    test.deepEqual(User.entityLoading({ obj: undefined }), { obj: null }); // not required, goes NULL
-    test.deepEqual(User.entityLoading({ obj: 1 }), { obj: null }); // not required, goes NULL
-    test.deepEqual(User.entityLoading({ obj: {a:1} }), { obj: {a:1} }); // ok
-    test.deepEqual(User.entityLoading({ obj: [1,2,3] }), { obj: [1,2,3] }); // an array is also an object
+    testEntityLoading({ ctime: 1000 }, { ctime: new Date('Thu Jan 01 1970 02:00:01 GMT+0200 (EET)') }); // converted
+    testEntityLoading({ ctime: '2012-03-04 15:16:17' }, { ctime: new Date('Sun Mar 04 2012 15:16:17 GMT+0200 (EET)') }); // converted
 
-    test.deepEqual(User.entityLoading({ roles: undefined }), { roles: null }); // wrong, null
-    test.deepEqual(User.entityLoading({ roles: 1 }), { roles: [1] }); // converted
-    test.deepEqual(User.entityLoading({ roles: [1] }), { roles: [1] }); // ok
+    testEntityLoading({ obj: undefined }, { obj: null }); // not required, goes NULL
+    testEntityLoading({ obj: 1 }, { obj: null }); // not required, goes NULL
+    testEntityLoading({ obj: {a:1} }, { obj: {a:1} }); // ok
+    testEntityLoading({ obj: [1,2,3] }, { obj: [1,2,3] }); // an array is also an object
 
-    test.deepEqual(User.entityLoading({ json: undefined }), { json: undefined }); // ok, as it's converted to 'undefined'
-    test.deepEqual(User.entityLoading({ json: null }), { json: null }); // ok, converted
-    test.deepEqual(User.entityLoading({ json: 1 }), { json: 1 }); // ok
-    test.deepEqual(User.entityLoading({ json: '1' }), { json: 1 }); // ok
-    test.deepEqual(User.entityLoading({ json: '{"a":1}' }), { json: {a:1} }); // ok
-    test.throws(function(){
-        User.entityLoading({ json: '{"a":1--}' }); // parse error
-    }, errors.MissyTypeError);
+    testEntityLoading({ roles: undefined }, { roles: null }); // wrong, null
+    testEntityLoading({ roles: 1 }, { roles: [1] }); // converted
+    testEntityLoading({ roles: [1] }, { roles: [1] }); // ok
 
-    test.deepEqual(User.entityLoading({ any: [1,{a:1}] }), { any: [1,{a:1}] }); // ok
+    testEntityLoading({ json: undefined }, { json: undefined }); // ok, as it's converted to 'undefined'
+    testEntityLoading({ json: null }, { json: null }); // ok, converted
+    testEntityLoading({ json: 1 }, { json: 1 }); // ok
+    testEntityLoading({ json: '1' }, { json: 1 }); // ok
+    testEntityLoading({ json: '{"a":1}' }, { json: {a:1} }); // ok
+    User.entityLoading({ json: '{"a":1--}' })
+        .then(function(){
+            test.ok(false);
+        })
+        .catch(function(e){
+            test.ok(e instanceof errors.MissyTypeError);
+        });
 
-    test.deepEqual(User.entityLoading({ smile: 123 }), { smile: 123 }); // ok
+    testEntityLoading({ any: [1,{a:1}] }, { any: [1,{a:1}] }); // ok
+
+    testEntityLoading({ smile: 123 }, { smile: 123 }); // ok
 
     // Test converter: Save
-    test.deepEqual(User.entitySaving({  }), {  }); // empty object ok
+    var testEntitySaving = function(entity, expected){
+        User.entitySaving(entity)
+            .then(function(entity){
+                test.deepEqual(entity, expected);
+            })
+            .catch(function(err){
+                test.ok(false);
+            }).done();
+    };
+    testEntitySaving({  }, {  }); // empty object ok
 
-    test.deepEqual(User.entitySaving({ aaaaa: {a:1} }), { aaaaa: {a:1} }); // custom properties ok
+    testEntitySaving({ aaaaa: {a:1} }, { aaaaa: {a:1} }); // custom properties ok
 
-    test.deepEqual(User.entitySaving({ id: 0.1 }), { id: 0.1 }); // number convertion
-    test.deepEqual(User.entitySaving({ id: '0' }), { id: 0 }); // number convertion
+    testEntitySaving({ id: 0.1 }, { id: 0.1 }); // number convertion
+    testEntitySaving({ id: '0' }, { id: 0 }); // number convertion
 
-    test.deepEqual(User.entitySaving({ name: '1' }), { name: '1' }); // string convertion
-    test.deepEqual(User.entitySaving({ name: [1,2,3] }), { name: '1,2,3' }); // string convertion
+    testEntitySaving({ name: '1' }, { name: '1' }); // string convertion
+    testEntitySaving({ name: [1,2,3] }, { name: '1,2,3' }); // string convertion
 
-    test.deepEqual(User.entitySaving({ login: undefined }), { login: '' }); // forced string convertion
-    test.deepEqual(User.entitySaving({ login: null }), { login: '' }); // forced string convertion
-    test.deepEqual(User.entitySaving({ login: 'kolypto' }), { login: 'kolypto' }); // ok string convertion
+    testEntitySaving({ login: undefined }, { login: '' }); // forced string convertion
+    testEntitySaving({ login: null }, { login: '' }); // forced string convertion
+    testEntitySaving({ login: 'kolypto' }, { login: 'kolypto' }); // ok string convertion
 
     var now = new Date();
-    test.deepEqual(User.entitySaving({ ctime: undefined }).ctime.getMonth(), now.getMonth()); // default
-    test.deepEqual(User.entitySaving({ ctime: now }), { ctime: now }); // ok
-    test.deepEqual(User.entitySaving({ ctime: 1000 }), { ctime: new Date('Thu Jan 01 1970 02:00:01 GMT+0200 (EET)') }); // converted
-    test.deepEqual(User.entitySaving({ ctime: '2012-03-04 15:16:17' }), { ctime: new Date('Sun Mar 04 2012 15:16:17 GMT+0200 (EET)') }); // converted
+    User.entitySaving({ ctime: undefined })
+        .then(function(entity){
+            test.equal(entity.ctime.getDay(), now.getDay()); // default
+        }).catch(function(e){
+            test.equal(e, undefined);
+        });
+    testEntitySaving({ ctime: now }, { ctime: now }); // ok
+    testEntitySaving({ ctime: 1000 }, { ctime: new Date('Thu Jan 01 1970 02:00:01 GMT+0200 (EET)') }); // converted
+    testEntitySaving({ ctime: '2012-03-04 15:16:17' }, { ctime: new Date('Sun Mar 04 2012 15:16:17 GMT+0200 (EET)') }); // converted
 
-    test.deepEqual(User.entitySaving({ obj: undefined }), { obj: null }); // not required, goes NULL
-    test.deepEqual(User.entitySaving({ obj: 1 }), { obj: null }); // not required, goes NULL
-    test.deepEqual(User.entitySaving({ obj: {a:1} }), { obj: {a:1} }); // ok
-    test.deepEqual(User.entitySaving({ obj: [1,2,3] }), { obj: [1,2,3] }); // an array is also an object
+    testEntitySaving({ obj: undefined }, { obj: null }); // not required, goes NULL
+    testEntitySaving({ obj: 1 }, { obj: null }); // not required, goes NULL
+    testEntitySaving({ obj: {a:1} }, { obj: {a:1} }); // ok
+    testEntitySaving({ obj: [1,2,3] }, { obj: [1,2,3] }); // an array is also an object
 
-    test.deepEqual(User.entitySaving({ roles: undefined }), { roles: null }); // wrong, null
-    test.deepEqual(User.entitySaving({ roles: 1 }), { roles: [1] }); // converted
-    test.deepEqual(User.entitySaving({ roles: [1] }), { roles: [1] }); // ok
+    testEntitySaving({ roles: undefined }, { roles: null }); // wrong, null
+    testEntitySaving({ roles: 1 }, { roles: [1] }); // converted
+    testEntitySaving({ roles: [1] }, { roles: [1] }); // ok
 
-    test.deepEqual(User.entitySaving({ json: undefined }), { json: null }); // not ok: no `undefined` in JSON
-    test.deepEqual(User.entitySaving({ json: null }), { json: null }); // ok, as not required
-    test.deepEqual(User.entitySaving({ json: 1 }), { json: '1' }); // ok
-    test.deepEqual(User.entitySaving({ json: '1' }), { json: '"1"' }); // ok
-    test.deepEqual(User.entitySaving({ json: {a:1} }), { json: '{"a":1}' }); // ok
+    testEntitySaving({ json: undefined }, { json: null }); // not ok: no `undefined` in JSON
+    testEntitySaving({ json: null }, { json: null }); // ok, as not required
+    testEntitySaving({ json: 1 }, { json: '1' }); // ok
+    testEntitySaving({ json: '1' }, { json: '"1"' }); // ok
+    testEntitySaving({ json: {a:1} }, { json: '{"a":1}' }); // ok
 
-    test.deepEqual(User.entitySaving({ any: [1,{a:1}] }), { any: [1,{a:1}] }); // ok
+    testEntitySaving({ any: [1,{a:1}] }, { any: [1,{a:1}] }); // ok
 
-    test.deepEqual(User.entitySaving({ smile: 123 }), { smile: '123 :)' }); // overwritten
+    testEntitySaving({ smile: 123 }, { smile: '123 :)' }); // overwritten
 
-    
     test.done();
 };
 
@@ -191,27 +221,27 @@ exports.testMissyProjection = function(test){
     var p;
 
     // Empty values
-    test.deepEqual(new modelUtil.MissyProjection(), { projection: {}, inclusionMode: false });
-    test.deepEqual(new modelUtil.MissyProjection({}), { projection: {}, inclusionMode: false });
-    test.deepEqual(new modelUtil.MissyProjection(''), { projection: {}, inclusionMode: false });
-    test.deepEqual(new modelUtil.MissyProjection([]), { projection: {}, inclusionMode: false });
+    test.deepEqual(new u.MissyProjection(), { projection: {}, inclusionMode: false });
+    test.deepEqual(new u.MissyProjection({}), { projection: {}, inclusionMode: false });
+    test.deepEqual(new u.MissyProjection(''), { projection: {}, inclusionMode: false });
+    test.deepEqual(new u.MissyProjection([]), { projection: {}, inclusionMode: false });
 
     // Array syntax
     test.deepEqual(
-        new modelUtil.MissyProjection(['a','b','c']),
+        new u.MissyProjection(['a','b','c']),
         { projection: { a:1, b:1, c:1 }, inclusionMode: true }
     );
 
     // Object: inclusion
-    p = new modelUtil.MissyProjection({ a:1, b:1, c:1 });
+    p = new u.MissyProjection({ a:1, b:1, c:1 });
     test.deepEqual(p, { projection: { a:1, b:1, c:1 }, inclusionMode: true });
 
     // Object: exclusion
-    p = new modelUtil.MissyProjection({ a:0, b:0, c:0 });
+    p = new u.MissyProjection({ a:0, b:0, c:0 });
     test.deepEqual(p, { projection: { a:0, b:0, c:0 }, inclusionMode: false });
 
     // getFieldDetails() when empty
-    p = new modelUtil.MissyProjection();
+    p = new u.MissyProjection();
     test.deepEqual(p.getFieldDetails(Profile), {
         fields: ['user_id', 'name', 'data'],
         pick: ['user_id', 'name', 'data'],
@@ -219,7 +249,7 @@ exports.testMissyProjection = function(test){
     });
 
     // getFieldDetails() in inclusion mode
-    p = new modelUtil.MissyProjection({ name: 1, aaaaa: 1 });
+    p = new u.MissyProjection({ name: 1, aaaaa: 1 });
     test.deepEqual(p.getFieldDetails(Profile), {
         fields: ['name', 'aaaaa'],
         pick: ['name', 'aaaaa'],
@@ -227,7 +257,7 @@ exports.testMissyProjection = function(test){
     });
 
     // getFieldDetails() in exclusion mode
-    p = new modelUtil.MissyProjection({ name: 0, aaaaa: 0 });
+    p = new u.MissyProjection({ name: 0, aaaaa: 0 });
     test.deepEqual(p.getFieldDetails(Profile), {
         fields: ['user_id', 'data'],
         pick: [],
@@ -235,8 +265,8 @@ exports.testMissyProjection = function(test){
     });
 
     // Self proxy
-    p = new modelUtil.MissyProjection({ a:0, b:0, c:0 });
-    p = new modelUtil.MissyProjection(p);
+    p = new u.MissyProjection({ a:0, b:0, c:0 });
+    p = new u.MissyProjection(p);
     test.deepEqual(p, { projection: { a:0, b:0, c:0 }, inclusionMode: false });
 
     test.done();
@@ -261,20 +291,20 @@ exports.testMissyCriteria = function(test){
     var c;
 
     // Empty & wrong
-    c = new modelUtil.MissyCriteria(Profile);
+    c = new u.MissyCriteria(Profile);
     test.deepEqual(_.omit(c, 'model'), { criteria: {} });
 
-    c = new modelUtil.MissyCriteria(Profile, null);
+    c = new u.MissyCriteria(Profile, null);
     test.deepEqual(_.omit(c, 'model'), { criteria: {} });
 
-    c = new modelUtil.MissyCriteria(Profile, undefined);
+    c = new u.MissyCriteria(Profile, undefined);
     test.deepEqual(_.omit(c, 'model'), { criteria: {} });
 
-    c = new modelUtil.MissyCriteria(Profile, 1);
+    c = new u.MissyCriteria(Profile, 1);
     test.deepEqual(_.omit(c, 'model'), { criteria: {} });
 
     // Ok & convertion
-    c = new modelUtil.MissyCriteria(Profile, { user_id: '1', title: 1, tags: 'a', aaaaa: 1 });
+    c = new u.MissyCriteria(Profile, { user_id: '1', title: 1, tags: 'a', aaaaa: 1 });
     test.deepEqual(_.omit(c, 'model'), { criteria: {
         user_id: { $eq: 1 }, // converted
         title: { $eq: '1' }, // converted
@@ -282,7 +312,7 @@ exports.testMissyCriteria = function(test){
         aaaaa: { $eq: 1 } // custom property unchanged
     } });
 
-    c = new modelUtil.MissyCriteria(Profile, {
+    c = new u.MissyCriteria(Profile, {
         user_id: { $exists: true },
         title: { $ne: 0 },
         aaaaa: { $in: ['public', 1] }
@@ -295,7 +325,7 @@ exports.testMissyCriteria = function(test){
 
     // Unknown operator
     test.throws(function(){
-        new modelUtil.MissyCriteria(Profile, { anything: { $wrong: 1 } });
+        new u.MissyCriteria(Profile, { anything: { $wrong: 1 } });
     }, errors.MissyModelError);
 
     test.done();
@@ -310,34 +340,34 @@ exports.testMissySort = function(test){
     var s;
 
     // Empty
-    s = new modelUtil.MissySort();
+    s = new u.MissySort();
     test.deepEqual(s, { sort: {} });
 
-    s = new modelUtil.MissySort(undefined);
+    s = new u.MissySort(undefined);
     test.deepEqual(s, { sort: {} });
 
-    s = new modelUtil.MissySort(null);
+    s = new u.MissySort(null);
     test.deepEqual(s, { sort: {} });
 
-    s = new modelUtil.MissySort('');
+    s = new u.MissySort('');
     test.deepEqual(s, { sort: {} });
 
-    s = new modelUtil.MissySort([]);
+    s = new u.MissySort([]);
     test.deepEqual(s, { sort: {} });
 
-    s = new modelUtil.MissySort({});
+    s = new u.MissySort({});
     test.deepEqual(s, { sort: {} });
 
     // String syntax
-    s = new modelUtil.MissySort('a,b+,c-');
+    s = new u.MissySort('a,b+,c-');
     test.deepEqual(s, { sort: { a:1, b:1, c:-1 } });
 
     // Array syntax
-    s = new modelUtil.MissySort(['a','b+', 'c-']);
+    s = new u.MissySort(['a','b+', 'c-']);
     test.deepEqual(s, { sort: { a:1, b:1, c:-1 } });
 
     // Object syntax
-    s = new modelUtil.MissySort({ a:1,b:-1,c:0,d:2 });
+    s = new u.MissySort({ a:1,b:-1,c:0,d:2 });
     test.deepEqual(s, { sort: { a:1, b:-1, c:-1, d:1 } });
 
     test.done();
