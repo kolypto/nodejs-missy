@@ -22,7 +22,8 @@
   ],
   
   "dependencies": {
-    "lodash": "2.3.x"
+    "lodash": "2.3.x",
+    "q": "0.9.x"
   },
   "devDependencies": {
     "nodeunit": "0.8.x"
