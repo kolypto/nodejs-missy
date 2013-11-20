@@ -289,23 +289,29 @@ exports.testMissyCriteria = function(test){
     }, { pk: ['category', 'id'] });
 
     var c;
+    var mcEqual = function(criteria, expected){
+        test.deepEqual(
+            _.omit(c, ['model'].concat(_.methods(criteria))),
+            expected
+        );
+    };
 
     // Empty & wrong
     c = new u.MissyCriteria(Profile);
-    test.deepEqual(_.omit(c, 'model'), { criteria: {} });
+    mcEqual(c, { criteria: {} });
 
     c = new u.MissyCriteria(Profile, null);
-    test.deepEqual(_.omit(c, 'model'), { criteria: {} });
+    mcEqual(c, { criteria: {} });
 
     c = new u.MissyCriteria(Profile, undefined);
-    test.deepEqual(_.omit(c, 'model'), { criteria: {} });
+    mcEqual(c, { criteria: {} });
 
     c = new u.MissyCriteria(Profile, 1);
-    test.deepEqual(_.omit(c, 'model'), { criteria: {} });
+    mcEqual(c, { criteria: {} });
 
     // Ok & convertion
     c = new u.MissyCriteria(Profile, { user_id: '1', title: 1, tags: 'a', aaaaa: 1 });
-    test.deepEqual(_.omit(c, 'model'), { criteria: {
+    mcEqual(c, { criteria: {
         user_id: { $eq: 1 }, // converted
         title: { $eq: '1' }, // converted
         tags: { $eq: ['a'] }, // converted
@@ -317,7 +323,7 @@ exports.testMissyCriteria = function(test){
         title: { $ne: 0 },
         aaaaa: { $in: ['public', 1] }
     });
-    test.deepEqual(_.omit(c, 'model'), { criteria: {
+    mcEqual(c, { criteria: {
         user_id: { $exists: true },
         title: { $ne: '0' },
         aaaaa: { $in: ['public', '1'] }
@@ -327,6 +333,57 @@ exports.testMissyCriteria = function(test){
     test.throws(function(){
         new u.MissyCriteria(Profile, { anything: { $wrong: 1 } });
     }, errors.MissyModelError);
+
+    // MissyCriteria.fromPk
+    var Log = schema.define('Log', {
+        uid: Number,
+        type: String,
+        id: Number,
+        title: String,
+        tags: Array,
+        entry: Object
+    }, { pk: ['uid', 'type', 'id'] });
+
+    test.throws(function(){
+        u.MissyCriteria.fromPk(Log, 1);
+    }, errors.MissyModelError);
+
+    test.throws(function(){
+        u.MissyCriteria.fromPk(Log, [1]);
+    }, errors.MissyModelError);
+
+    test.throws(function(){
+        u.MissyCriteria.fromPk(Log, [1,2]);
+    }, errors.MissyModelError);
+
+    c = u.MissyCriteria.fromPk(Log, [1,2,'3']);
+    mcEqual(c, { criteria: {
+        uid: { $eq: 1 },
+        type: { $eq: '2' },
+        id: { $eq: 3 }
+    } });
+
+    test.throws(function(){
+        u.MissyCriteria.fromPk(Log, [1,2,3,4]);
+    }, errors.MissyModelError);
+
+    // MissyCriteria.match
+    var logs = [
+        { uid: 1, type: 'sms', id: 1, title: 'hello', tags: ['a','b'], entry: { msg: 'you there?' } },
+        { uid: 1, type: 'sms', id: 2, title: 'yes, here', tags: undefined },
+        { uid: 2, type: 'sms', id: 3, title: 'wassup?', tags: undefined }
+    ];
+    var testCriteria = function(criteria, logs, expected){
+        _.each(logs, function(log, i){
+            test.equal(criteria.match(log), expected[i], 'Expected Criteria.match(logs[]) = ' + expected[i]);
+        });
+    };
+
+    testCriteria(
+        new u.MissyCriteria(Log, { uid: 1, type: 'test' }),
+        logs,
+        [false,false,false]
+    );
 
     test.done();
 };
