@@ -367,7 +367,7 @@ exports.testMissyCriteria = function(test){
         u.MissyCriteria.fromPk(Log, [1,2,3,4]);
     }, errors.MissyModelError);
 
-    // MissyCriteria.match
+    // MissyCriteria.entityMatch
     var logs = [
         { uid: 1, type: 'sms', id: 1, title: 'hello', tags: ['a','b'], entry: { msg: 'you there?' } },
         { uid: 1, type: 'sms', id: 2, title: 'yes, here', tags: undefined },
@@ -375,15 +375,27 @@ exports.testMissyCriteria = function(test){
     ];
     var testCriteria = function(criteria, logs, expected){
         _.each(logs, function(log, i){
-            test.equal(criteria.match(log), expected[i], 'Expected Criteria.match(logs[]) = ' + expected[i]);
+            test.equal(criteria.entityMatch(log), expected[i], 'Expected Criteria.entityMatch(logs['+i+']) = ' + expected[i]);
         });
     };
 
-    testCriteria(
-        new u.MissyCriteria(Log, { uid: 1, type: 'test' }),
-        logs,
-        [false,false,false]
-    );
+    testCriteria( new u.MissyCriteria(Log, { }), logs, [true,true,true]);
+    testCriteria(new u.MissyCriteria(Log, { uid: 1 }), logs, [true,true,false]);
+    testCriteria(new u.MissyCriteria(Log, { uid: '1', type: 'test' }), logs, [false,false,false]);
+    testCriteria(new u.MissyCriteria(Log, { uid: 1, type: 'sms' }), logs, [true,true,false]);
+    testCriteria(new u.MissyCriteria(Log, { uid: 2, type: 'sms' }), logs, [false,false,true]);
+
+    testCriteria(new u.MissyCriteria(Log, { id: { $gt: '2' } }), logs, [false,false,true]);
+    testCriteria(new u.MissyCriteria(Log, { id: { $gte: '2' } }), logs, [false,true,true]);
+    testCriteria(new u.MissyCriteria(Log, { id: { $lt: '2' } }), logs, [true,false,false]);
+    testCriteria(new u.MissyCriteria(Log, { id: { $lte: '2' } }), logs, [true,true,false]);
+    testCriteria(new u.MissyCriteria(Log, { id: { $lte: '2' } }), logs, [true,true,false]);
+    testCriteria(new u.MissyCriteria(Log, { id: { $ne: '2' } }), logs, [true,false,true]);
+    testCriteria(new u.MissyCriteria(Log, { id: { $eq: '2' } }), logs, [false,true,false]);
+    testCriteria(new u.MissyCriteria(Log, { id: { $in: ['1',3,4] } }), logs, [true,false,true]);
+    testCriteria(new u.MissyCriteria(Log, { id: { $nin: [1,3,4] } }), logs, [false,true,false]);
+    testCriteria(new u.MissyCriteria(Log, { entry: { $exists: true } }), logs, [true,false,false]);
+    testCriteria(new u.MissyCriteria(Log, { entry: { $exists: false } }), logs, [false,true,true]);
 
     test.done();
 };
