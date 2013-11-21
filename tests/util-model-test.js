@@ -244,7 +244,7 @@ exports.testMissyProjection = function(test){
     p = new u.MissyProjection();
     test.deepEqual(p.getFieldDetails(Profile), {
         fields: ['user_id', 'name', 'data'],
-        pick: ['user_id', 'name', 'data'],
+        pick: [],
         omit: []
     });
 
@@ -268,6 +268,17 @@ exports.testMissyProjection = function(test){
     p = new u.MissyProjection({ a:0, b:0, c:0 });
     p = new u.MissyProjection(p);
     test.deepEqual(p, { projection: { a:0, b:0, c:0 }, inclusionMode: false });
+
+    // MissyProjection.entityApply()
+    p = new u.MissyProjection();
+    test.deepEqual(p.entityApply(Profile, {a:1,b:2,c:2}), {a:1,b:2,c:2}); // empty, unchanged
+
+    p = new u.MissyProjection({user_id:1, c:1});
+    p.test = 1;
+    test.deepEqual(p.entityApply(Profile, {user_id:1, a:2,b:3,c:4}), { user_id:1, c:1 }); // empty, unchanged
+
+    p = new u.MissyProjection({user_id:0, c:0});
+    test.deepEqual(p.entityApply(Profile, {user_id:1, a:2,b:3,c:4}), { a:2,b:3 }); // empty, unchanged
 
     test.done();
 };
