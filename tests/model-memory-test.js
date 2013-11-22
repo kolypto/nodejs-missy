@@ -360,19 +360,19 @@ exports.testModel_MemoryDriver = function(test){
         // find() with limit and exclusive projection
         function(){
             return Log.find(
-                { id: { $gt: 1 }, level: { $lte: 1 }, title: { $exists: true } },
+                {  },
                 { entry: 0, tags: 0, title: 0 }, // project
-                { id: -1 } // `id` DESC
-            ) // 2 rows found
+                { id: -1 }, // `id` DESC
+                { skip: 1, limit: 1 }
+            ) // 1 rows found
                 .then(function(entities){
                     test.deepEqual(entities, [
-                        { id: 3, level: 1 },
                         { id: 2, level: 0 }
                     ]);
                     testHooks.Log.fired({
                         beforeFind: 1,
-                        beforeLoading: 2,
-                        afterLoading: 2,
+                        beforeLoading: 1,
+                        afterLoading: 1,
                         afterFind: 1
                     });
                 })
