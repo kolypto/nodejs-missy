@@ -316,7 +316,7 @@ exports.testModel_MemoryDriver = function(test){
             ]);
         },
 
-        // TODO: findOne()
+        // findOne():
         // TODO: find()
         // TODO: count()
     ].reduce(Q.when, Q(1))
