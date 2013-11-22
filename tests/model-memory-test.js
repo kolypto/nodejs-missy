@@ -379,8 +379,18 @@ exports.testModel_MemoryDriver = function(test){
                 .catch(shouldNever('find() with limit and exclusive projection fail'));
         },
         // TODO: more find() tests
-        
-        // TODO: count()
+
+        // count()
+        function(){
+            return Log.count(
+                { id: { $gt: 1 }, level: { $lte: 1 }, title: { $exists: true } }
+            ) // 2 rows found
+                .then(function(count){
+                    test.equal(count, 2);
+                    testHooks.Log.fired({});
+                })
+                .catch(shouldNever('count()'));
+        },
     ].reduce(Q.when, Q(1))
         .catch(shouldNever('Test error'))
         .then(function(){
