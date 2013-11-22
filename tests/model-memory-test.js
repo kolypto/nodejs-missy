@@ -327,15 +327,59 @@ exports.testModel_MemoryDriver = function(test){
                     test.deepEqual(entity, { id: 3, level: 1, title: 'Third' });
                     testHooks.Log.fired({
                         beforeFindOne: 1,
-                        afterFindOne: 1,
                         beforeLoading: 1,
-                        afterLoading: 1
+                        afterLoading: 1,
+                        afterFindOne: 1
                     });
                 })
                 .catch(shouldNever('findOne() conditions fail'));
-        }
+        },
+        // TODO: more findOne() tests
 
-        // TODO: find()
+        // find()
+        function(){
+            return Log.find(
+                { id: { $gt: 1 }, level: { $lte: 1 }, title: { $exists: true } },
+                { id: 1, level: 1 }, // project
+                { id: -1 } // `id` DESC
+            ) // 2 rows found
+                .then(function(entities){
+                    test.deepEqual(entities, [
+                        { id: 3, level: 1 },
+                        { id: 2, level: 0 }
+                    ]);
+                    testHooks.Log.fired({
+                        beforeFind: 1,
+                        beforeLoading: 2,
+                        afterLoading: 2,
+                        afterFind: 1
+                    });
+                })
+                .catch(shouldNever('find() conditions fail'));
+        },
+        // find() with limit and exclusive projection
+        function(){
+            return Log.find(
+                { id: { $gt: 1 }, level: { $lte: 1 }, title: { $exists: true } },
+                { entry: 0, tags: 0, title: 0 }, // project
+                { id: -1 } // `id` DESC
+            ) // 2 rows found
+                .then(function(entities){
+                    test.deepEqual(entities, [
+                        { id: 3, level: 1 },
+                        { id: 2, level: 0 }
+                    ]);
+                    testHooks.Log.fired({
+                        beforeFind: 1,
+                        beforeLoading: 2,
+                        afterLoading: 2,
+                        afterFind: 1
+                    });
+                })
+                .catch(shouldNever('find() with limit and exclusive projection fail'));
+        },
+        // TODO: more find() tests
+        
         // TODO: count()
     ].reduce(Q.when, Q(1))
         .catch(shouldNever('Test error'))
