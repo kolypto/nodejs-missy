@@ -210,6 +210,46 @@ exports.testModel_MemoryDriver = function(test){
         // TODO: Upsert array[2] new
         // TODO: Upsert array[2] existing
         // TODO: Upsert array[2] new & existing
+        // Remove 1
+        function(){
+            return Log.remove({ id:4 })
+                .then(function(entity){
+                    test.deepEqual(entity, { id: 4, level: 2, title: 'fourth' }); // full entity returned
+                    test.deepEqual(driver._storage.length, 3);
+                    testHooks.Log.fired({
+                        beforeSaving:1,
+                        afterSaving:1,
+                        beforeRemove:1,
+                        beforeLoading:1,
+                        afterLoading:1,
+                        afterRemove:1
+                    });
+                }).catch(shouldNever('remove 1 fail'));
+        },
+        // Remove non-existing
+        function(){
+            return Log.remove({ id: 100 })
+                .then(shouldNever('remove non-existing success'))
+                .catch(function(e){
+                    test.equal(driver._storage.length, 3); // length not changed
+                    test.ok(e instanceof errors.EntityNotFound); // error ok
+                    testHooks.Log.fired({
+                        beforeSaving:1,
+                        afterSaving:1,
+                        beforeRemove:1
+                        // no more hooks due to error
+                    });
+                });
+        },
+
+        // STORAGE CONSISTENCY TEST
+        function(){
+            test.deepEqual(driver._storage, [
+                { id: 1, level: 0, title: 'first', tags: ['a','b','c'] },
+                { id: 2, level: 0, title: 'Second', entry: {a:1,b:2,c:3,d:4} },
+                { id: 3, level: 1, title: 'Third' }
+            ]);
+        }
     ].reduce(Q.when, Q(1))
         .catch(shouldNever('Test error'))
         .then(function(){
