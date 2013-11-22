@@ -316,7 +316,25 @@ exports.testModel_MemoryDriver = function(test){
             ]);
         },
 
-        // findOne():
+        // findOne() conditions
+        function(){
+            return Log.findOne(
+                    { id: { $gt: 1 }, level: { $lte: 1 }, title: { $exists: true } },
+                    { id: 1, level: 1, title: 1 }, // project
+                    { id: -1 } // `id` DESC
+                ) // 2 rows found
+                .then(function(entity){
+                    test.deepEqual(entity, { id: 3, level: 1, title: 'Third' });
+                    testHooks.Log.fired({
+                        beforeFindOne: 1,
+                        afterFindOne: 1,
+                        beforeLoading: 1,
+                        afterLoading: 1
+                    });
+                })
+                .catch(shouldNever('findOne() conditions fail'));
+        }
+
         // TODO: find()
         // TODO: count()
     ].reduce(Q.when, Q(1))
