@@ -249,7 +249,67 @@ exports.testModel_MemoryDriver = function(test){
                 { id: 2, level: 0, title: 'Second', entry: {a:1,b:2,c:3,d:4} },
                 { id: 3, level: 1, title: 'Third' }
             ]);
-        }
+        },
+
+        // get(): by object
+        function(){
+            return Log.get({id:1})
+                .then(function(entity){
+                    test.deepEqual(entity, { id: 1, level: 0, title: 'first', tags: ['a','b','c'] });
+                    testHooks.Log.fired({
+                        beforeFindOne:1,
+                        beforeLoading:1,
+                        afterLoading:1,
+                        afterFindOne:1
+                    });
+                })
+                .catch(shouldNever('get() fail'));
+        },
+        // get(): by array
+        function(){
+            return Log.get(1)
+                .then(function(entity){
+                    test.deepEqual(entity, { id: 1, level: 0, title: 'first', tags: ['a','b','c'] });
+                    testHooks.Log.fired({
+                        beforeFindOne:1,
+                        beforeLoading:1,
+                        afterLoading:1,
+                        afterFindOne:1
+                    });
+                })
+                .catch(shouldNever('get() fail'));
+        },
+        // get(): not found
+        function(){
+            return Log.get({id:100})
+                .then(function(entity){
+                    test.equal(entity, null);
+                    testHooks.Log.fired({
+                        beforeFindOne:1,
+                        // no loading: null
+                        afterFindOne:1
+                    });
+                })
+                .catch(shouldNever('get() fail'));
+        },
+        // get(): wrong PK
+        function(){
+            test.throws(function(){
+                Log.get({a:1,b:2});
+            }, errors.MissyModelError);
+
+            test.throws(function(){
+                Log.get([]);
+            }, errors.MissyModelError);
+
+            test.throws(function(){
+                Log.get([1,2]);
+            }, errors.MissyModelError);
+        },
+
+        // TODO: findOne()
+        // TODO: find()
+        // TODO: count()
     ].reduce(Q.when, Q(1))
         .catch(shouldNever('Test error'))
         .then(function(){
