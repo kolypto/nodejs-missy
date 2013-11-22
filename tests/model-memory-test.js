@@ -175,41 +175,41 @@ exports.testModel_MemoryDriver = function(test){
                     });
                 });
         },
-        // Save 1 new
+        // Upsert 1 new
         function(){
-            return Log.save({ id: 4, level: '2', title: 'fourth' })
+            return Log.upsert({ id: 4, level: '2', title: 'fourth' })
                 .then(function(entity){
                     test.deepEqual(entity, { id: 4, level: 2, title: 'fourth' }); // '2' converted
                     test.deepEqual(driver._storage.slice(3), [ entity ]);
                     testHooks.Log.fired({
                         beforeSaving:1,
                         afterSaving:1,
-                        beforeSave:1,
+                        beforeUpsert:1,
                         beforeLoading:1,
                         afterLoading:1,
-                        afterSave:1
+                        afterUpsert:1
                     });
-                }).catch(shouldNever('save 1 new fail'));
+                }).catch(shouldNever('upsert 1 new fail'));
         },
-        // Save 1 existing
+        // Upsert 1 existing
         function(){
-            return Log.save({ id: 1, level: 0, title: 'first', tags: ['a','b','c'] })
+            return Log.upsert({ id: 1, level: 0, title: 'first', tags: ['a','b','c'] })
                 .then(function(entity){
                     test.deepEqual(entity, { id: 1, level: 0, title: 'first', tags: ['a','b','c'] });
                     test.deepEqual(driver._storage.slice(0,1), [ entity ]);
                     testHooks.Log.fired({
                         beforeSaving:1,
                         afterSaving:1,
-                        beforeSave:1,
+                        beforeUpsert:1,
                         beforeLoading:1,
                         afterLoading:1,
-                        afterSave:1
+                        afterUpsert:1
                     });
-                }).catch(shouldNever('save 1 existing fail'));
+                }).catch(shouldNever('upsert 1 existing fail'));
         },
-        // TODO: Save array[2] new
-        // TODO: Save array[2] existing
-        // TODO: Save array[2] new & existing
+        // TODO: Upsert array[2] new
+        // TODO: Upsert array[2] existing
+        // TODO: Upsert array[2] new & existing
     ].reduce(Q.when, Q(1))
         .catch(shouldNever('Test error'))
         .then(function(){
