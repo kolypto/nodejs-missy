@@ -449,5 +449,47 @@ exports.testMissySort = function(test){
     s = new u.MissySort({ a:1,b:-1,c:0,d:2 });
     test.deepEqual(s, { sort: { a:1, b:-1, c:-1, d:1 } });
 
+    // MissySort.entitiesSort
+    var a = { id: 1, level: 0, title: 'zxy', cat: 0 },
+        b = { id: 2, level: 2, title: 'jkl', cat: 0 },
+        c = { id: 3, level: 1, title: 'ghi', cat: 1 },
+        d = { id: 4, level: 3, title: 'abc', cat: 1 },
+        db = [ a,b,c,d ];
+
+    test.deepEqual(
+        new u.MissySort({id:-1}).entitiesSort(db),
+        [ d,c,b,a ]
+    );
+
+    test.deepEqual(
+        new u.MissySort({level:-1}).entitiesSort(db),
+        [ d,b,c,a ]
+    );
+
+    test.deepEqual(
+        new u.MissySort({title:+1}).entitiesSort(db),
+        [ d,c,b,a ]
+    );
+
+    test.deepEqual(
+        new u.MissySort({cat:-1, id: +1}).entitiesSort(db),
+        [ c,d,a,b ]
+    );
+
+    test.deepEqual(
+        new u.MissySort({cat:-1, id: -1}).entitiesSort(db),
+        [ d,c,b,a ]
+    );
+
+    test.deepEqual(
+        new u.MissySort({cat:+1, id: +1}).entitiesSort(db),
+        [ a,b,c,d ]
+    );
+
+    test.deepEqual(
+        new u.MissySort({cat:+1, id: -1}).entitiesSort(db),
+        [ b,a,d,c ]
+    );
+
     test.done();
 };
