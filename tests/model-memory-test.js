@@ -294,17 +294,26 @@ exports.testModel_MemoryDriver = function(test){
         },
         // get(): wrong PK
         function(){
-            test.throws(function(){
-                Log.get({a:1,b:2});
-            }, errors.MissyModelError);
-
-            test.throws(function(){
-                Log.get([]);
-            }, errors.MissyModelError);
-
-            test.throws(function(){
-                Log.get([1,2]);
-            }, errors.MissyModelError);
+            return Q.all([
+                Log.get({a:1,b:2})
+                    .then(shouldNever('get() wrong PK success (1)'))
+                    .catch(function(e){
+                        test.ok(e instanceof errors.MissyModelError);
+                        testHooks.Log.fired({}); // none
+                    }),
+                Log.get([])
+                    .then(shouldNever('get() wrong PK success (2)'))
+                    .catch(function(e){
+                        test.ok(e instanceof errors.MissyModelError);
+                        testHooks.Log.fired({}); // none
+                    }),
+                Log.get([1,2])
+                    .then(shouldNever('get() wrong PK success (3)'))
+                    .catch(function(e){
+                        test.ok(e instanceof errors.MissyModelError);
+                        testHooks.Log.fired({}); // none
+                    })
+            ]);
         },
 
         // TODO: findOne()
