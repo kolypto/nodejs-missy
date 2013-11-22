@@ -139,7 +139,7 @@ exports.testModel_MemoryDriver = function(test){
                     });
                 }).catch(shouldNever('update 1 fail'));
         },
-        // Update array
+        // Update array[2]
         function(){
             return Log.update([
                     { id: '2', level: '0', title: 'Second', entry: {a:1,b:2,c:3,d:4} },
@@ -175,6 +175,41 @@ exports.testModel_MemoryDriver = function(test){
                     });
                 });
         },
+        // Save 1 new
+        function(){
+            return Log.save({ id: 4, level: '2', title: 'fourth' })
+                .then(function(entity){
+                    test.deepEqual(entity, { id: 4, level: 2, title: 'fourth' }); // '2' converted
+                    test.deepEqual(driver._storage.slice(3), [ entity ]);
+                    testHooks.Log.fired({
+                        beforeSaving:1,
+                        afterSaving:1,
+                        beforeSave:1,
+                        beforeLoading:1,
+                        afterLoading:1,
+                        afterSave:1
+                    });
+                }).catch(shouldNever('save 1 new fail'));
+        },
+        // Save 1 existing
+        function(){
+            return Log.save({ id: 1, level: 0, title: 'first', tags: ['a','b','c'] })
+                .then(function(entity){
+                    test.deepEqual(entity, { id: 1, level: 0, title: 'first', tags: ['a','b','c'] });
+                    test.deepEqual(driver._storage.slice(0,1), [ entity ]);
+                    testHooks.Log.fired({
+                        beforeSaving:1,
+                        afterSaving:1,
+                        beforeSave:1,
+                        beforeLoading:1,
+                        afterLoading:1,
+                        afterSave:1
+                    });
+                }).catch(shouldNever('save 1 existing fail'));
+        },
+        // TODO: Save array[2] new
+        // TODO: Save array[2] existing
+        // TODO: Save array[2] new & existing
     ].reduce(Q.when, Q(1))
         .catch(shouldNever('Test error'))
         .then(function(){
