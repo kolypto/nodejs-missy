@@ -81,8 +81,8 @@ exports.testConverter = function(test){
     });
 
     // Test converter: Load
-    var testEntityLoading = function(entity, expected){
-        User.entityLoading(entity)
+    var testEntityImport = function(entity, expected){
+        User.entityImport(entity)
             .then(function(entity){
                 test.deepEqual(entity, expected);
             })
@@ -91,46 +91,46 @@ exports.testConverter = function(test){
             }).done();
     };
 
-    testEntityLoading({  }, {  }); // empty object ok
+    testEntityImport({  }, {  }); // empty object ok
 
-    testEntityLoading({ aaaaa: {a:1} }, { aaaaa: {a:1} }); // custom properties ok
+    testEntityImport({ aaaaa: {a:1} }, { aaaaa: {a:1} }); // custom properties ok
 
-    testEntityLoading({ id: 0.1 }, { id: 0.1 }); // number convertion
-    testEntityLoading({ id: '0' }, { id: 0 }); // number convertion
+    testEntityImport({ id: 0.1 }, { id: 0.1 }); // number convertion
+    testEntityImport({ id: '0' }, { id: 0 }); // number convertion
 
-    testEntityLoading({ name: '1' }, { name: '1' }); // string convertion
-    testEntityLoading({ name: [1,2,3] }, { name: '1,2,3' }); // string convertion
+    testEntityImport({ name: '1' }, { name: '1' }); // string convertion
+    testEntityImport({ name: [1,2,3] }, { name: '1,2,3' }); // string convertion
 
-    testEntityLoading({ login: undefined }, { login: '' }); // forced string convertion
-    testEntityLoading({ login: null }, { login: '' }); // forced string convertion
-    testEntityLoading({ login: 'kolypto' }, { login: 'kolypto' }); // ok string convertion
+    testEntityImport({ login: undefined }, { login: '' }); // forced string convertion
+    testEntityImport({ login: null }, { login: '' }); // forced string convertion
+    testEntityImport({ login: 'kolypto' }, { login: 'kolypto' }); // ok string convertion
 
     var now = new Date();
-    User.entityLoading({ ctime: undefined })
+    User.entityImport({ ctime: undefined })
         .then(function(entity){
             test.equal(entity.ctime.getDay(), now.getDay()); // default
         }).catch(function(e){
             test.equal(e, undefined);
         });
 
-    testEntityLoading({ ctime: 1000 }, { ctime: new Date('Thu Jan 01 1970 02:00:01 GMT+0200 (EET)') }); // converted
-    testEntityLoading({ ctime: '2012-03-04 15:16:17' }, { ctime: new Date('Sun Mar 04 2012 15:16:17 GMT+0200 (EET)') }); // converted
+    testEntityImport({ ctime: 1000 }, { ctime: new Date('Thu Jan 01 1970 02:00:01 GMT+0200 (EET)') }); // converted
+    testEntityImport({ ctime: '2012-03-04 15:16:17' }, { ctime: new Date('Sun Mar 04 2012 15:16:17 GMT+0200 (EET)') }); // converted
 
-    testEntityLoading({ obj: undefined }, { obj: null }); // not required, goes NULL
-    testEntityLoading({ obj: 1 }, { obj: null }); // not required, goes NULL
-    testEntityLoading({ obj: {a:1} }, { obj: {a:1} }); // ok
-    testEntityLoading({ obj: [1,2,3] }, { obj: [1,2,3] }); // an array is also an object
+    testEntityImport({ obj: undefined }, { obj: null }); // not required, goes NULL
+    testEntityImport({ obj: 1 }, { obj: null }); // not required, goes NULL
+    testEntityImport({ obj: {a:1} }, { obj: {a:1} }); // ok
+    testEntityImport({ obj: [1,2,3] }, { obj: [1,2,3] }); // an array is also an object
 
-    testEntityLoading({ roles: undefined }, { roles: null }); // wrong, null
-    testEntityLoading({ roles: 1 }, { roles: [1] }); // converted
-    testEntityLoading({ roles: [1] }, { roles: [1] }); // ok
+    testEntityImport({ roles: undefined }, { roles: null }); // wrong, null
+    testEntityImport({ roles: 1 }, { roles: [1] }); // converted
+    testEntityImport({ roles: [1] }, { roles: [1] }); // ok
 
-    testEntityLoading({ json: undefined }, { json: undefined }); // ok, as it's converted to 'undefined'
-    testEntityLoading({ json: null }, { json: null }); // ok, converted
-    testEntityLoading({ json: 1 }, { json: 1 }); // ok
-    testEntityLoading({ json: '1' }, { json: 1 }); // ok
-    testEntityLoading({ json: '{"a":1}' }, { json: {a:1} }); // ok
-    User.entityLoading({ json: '{"a":1--}' })
+    testEntityImport({ json: undefined }, { json: undefined }); // ok, as it's converted to 'undefined'
+    testEntityImport({ json: null }, { json: null }); // ok, converted
+    testEntityImport({ json: 1 }, { json: 1 }); // ok
+    testEntityImport({ json: '1' }, { json: 1 }); // ok
+    testEntityImport({ json: '{"a":1}' }, { json: {a:1} }); // ok
+    User.entityImport({ json: '{"a":1--}' })
         .then(function(){
             test.ok(false);
         })
@@ -138,13 +138,13 @@ exports.testConverter = function(test){
             test.ok(e instanceof errors.MissyTypeError);
         });
 
-    testEntityLoading({ any: [1,{a:1}] }, { any: [1,{a:1}] }); // ok
+    testEntityImport({ any: [1,{a:1}] }, { any: [1,{a:1}] }); // ok
 
-    testEntityLoading({ smile: 123 }, { smile: 123 }); // ok
+    testEntityImport({ smile: 123 }, { smile: 123 }); // ok
 
     // Test converter: Save
-    var testEntitySaving = function(entity, expected){
-        User.entitySaving(entity)
+    var testEntityExport = function(entity, expected){
+        User.entityExport(entity)
             .then(function(entity){
                 test.deepEqual(entity, expected);
             })
@@ -152,49 +152,49 @@ exports.testConverter = function(test){
                 test.ok(false);
             }).done();
     };
-    testEntitySaving({  }, {  }); // empty object ok
+    testEntityExport({  }, {  }); // empty object ok
 
-    testEntitySaving({ aaaaa: {a:1} }, { aaaaa: {a:1} }); // custom properties ok
+    testEntityExport({ aaaaa: {a:1} }, { aaaaa: {a:1} }); // custom properties ok
 
-    testEntitySaving({ id: 0.1 }, { id: 0.1 }); // number convertion
-    testEntitySaving({ id: '0' }, { id: 0 }); // number convertion
+    testEntityExport({ id: 0.1 }, { id: 0.1 }); // number convertion
+    testEntityExport({ id: '0' }, { id: 0 }); // number convertion
 
-    testEntitySaving({ name: '1' }, { name: '1' }); // string convertion
-    testEntitySaving({ name: [1,2,3] }, { name: '1,2,3' }); // string convertion
+    testEntityExport({ name: '1' }, { name: '1' }); // string convertion
+    testEntityExport({ name: [1,2,3] }, { name: '1,2,3' }); // string convertion
 
-    testEntitySaving({ login: undefined }, { login: '' }); // forced string convertion
-    testEntitySaving({ login: null }, { login: '' }); // forced string convertion
-    testEntitySaving({ login: 'kolypto' }, { login: 'kolypto' }); // ok string convertion
+    testEntityExport({ login: undefined }, { login: '' }); // forced string convertion
+    testEntityExport({ login: null }, { login: '' }); // forced string convertion
+    testEntityExport({ login: 'kolypto' }, { login: 'kolypto' }); // ok string convertion
 
     var now = new Date();
-    User.entitySaving({ ctime: undefined })
+    User.entityExport({ ctime: undefined })
         .then(function(entity){
             test.equal(entity.ctime.getDay(), now.getDay()); // default
         }).catch(function(e){
             test.equal(e, undefined);
         });
-    testEntitySaving({ ctime: now }, { ctime: now }); // ok
-    testEntitySaving({ ctime: 1000 }, { ctime: new Date('Thu Jan 01 1970 02:00:01 GMT+0200 (EET)') }); // converted
-    testEntitySaving({ ctime: '2012-03-04 15:16:17' }, { ctime: new Date('Sun Mar 04 2012 15:16:17 GMT+0200 (EET)') }); // converted
+    testEntityExport({ ctime: now }, { ctime: now }); // ok
+    testEntityExport({ ctime: 1000 }, { ctime: new Date('Thu Jan 01 1970 02:00:01 GMT+0200 (EET)') }); // converted
+    testEntityExport({ ctime: '2012-03-04 15:16:17' }, { ctime: new Date('Sun Mar 04 2012 15:16:17 GMT+0200 (EET)') }); // converted
 
-    testEntitySaving({ obj: undefined }, { obj: null }); // not required, goes NULL
-    testEntitySaving({ obj: 1 }, { obj: null }); // not required, goes NULL
-    testEntitySaving({ obj: {a:1} }, { obj: {a:1} }); // ok
-    testEntitySaving({ obj: [1,2,3] }, { obj: [1,2,3] }); // an array is also an object
+    testEntityExport({ obj: undefined }, { obj: null }); // not required, goes NULL
+    testEntityExport({ obj: 1 }, { obj: null }); // not required, goes NULL
+    testEntityExport({ obj: {a:1} }, { obj: {a:1} }); // ok
+    testEntityExport({ obj: [1,2,3] }, { obj: [1,2,3] }); // an array is also an object
 
-    testEntitySaving({ roles: undefined }, { roles: null }); // wrong, null
-    testEntitySaving({ roles: 1 }, { roles: [1] }); // converted
-    testEntitySaving({ roles: [1] }, { roles: [1] }); // ok
+    testEntityExport({ roles: undefined }, { roles: null }); // wrong, null
+    testEntityExport({ roles: 1 }, { roles: [1] }); // converted
+    testEntityExport({ roles: [1] }, { roles: [1] }); // ok
 
-    testEntitySaving({ json: undefined }, { json: null }); // not ok: no `undefined` in JSON
-    testEntitySaving({ json: null }, { json: null }); // ok, as not required
-    testEntitySaving({ json: 1 }, { json: '1' }); // ok
-    testEntitySaving({ json: '1' }, { json: '"1"' }); // ok
-    testEntitySaving({ json: {a:1} }, { json: '{"a":1}' }); // ok
+    testEntityExport({ json: undefined }, { json: null }); // not ok: no `undefined` in JSON
+    testEntityExport({ json: null }, { json: null }); // ok, as not required
+    testEntityExport({ json: 1 }, { json: '1' }); // ok
+    testEntityExport({ json: '1' }, { json: '"1"' }); // ok
+    testEntityExport({ json: {a:1} }, { json: '{"a":1}' }); // ok
 
-    testEntitySaving({ any: [1,{a:1}] }, { any: [1,{a:1}] }); // ok
+    testEntityExport({ any: [1,{a:1}] }, { any: [1,{a:1}] }); // ok
 
-    testEntitySaving({ smile: 123 }, { smile: '123 :)' }); // overwritten
+    testEntityExport({ smile: 123 }, { smile: '123 :)' }); // overwritten
 
     test.done();
 };

@@ -78,11 +78,11 @@ exports.testModel_MemoryDriver = function(test){
                     test.deepEqual(entity, { id: 1, level: 0, title: 'first', tags: ['a','b','c'] });
                     test.deepEqual(driver._storage.slice(0), [ entity ]);
                     testHooks.Log.fired({
-                        beforeSaving:1,
-                        afterSaving:1,
+                        beforeExport:1,
+                        afterExport:1,
                         beforeInsert:1,
-                        beforeLoading:1,
-                        afterLoading:1,
+                        beforeImport:1,
+                        afterImport:1,
                         afterInsert:1
                     });
                 }).catch(shouldNever('insert 1 fail'));
@@ -99,11 +99,11 @@ exports.testModel_MemoryDriver = function(test){
                     ]);
                     test.deepEqual(driver._storage.slice(1), entities); // inserted
                     testHooks.Log.fired({
-                        beforeSaving:2,
-                        afterSaving:2,
+                        beforeExport:2,
+                        afterExport:2,
                         beforeInsert:1,
-                        beforeLoading:2,
-                        afterLoading:2,
+                        beforeImport:2,
+                        afterImport:2,
                         afterInsert:1
                     });
                 }).catch(shouldNever('insert array[2] fail'));
@@ -116,8 +116,8 @@ exports.testModel_MemoryDriver = function(test){
                     test.equal(driver._storage.length, 3); // length not changed
                     test.ok(e instanceof errors.EntityExists); // error ok
                     testHooks.Log.fired({
-                        beforeSaving:1,
-                        afterSaving:1,
+                        beforeExport:1,
+                        afterExport:1,
                         beforeInsert:1
                         // no more hooks due to error
                     });
@@ -130,11 +130,11 @@ exports.testModel_MemoryDriver = function(test){
                     test.deepEqual(entity, { id: 1, level: 0, title: 'First', tags: ['a','b','c','d'] }); // '0' converted
                     test.deepEqual(driver._storage.slice(0,1), [ entity ]); // replaced
                     testHooks.Log.fired({
-                        beforeSaving:1,
-                        afterSaving:1,
+                        beforeExport:1,
+                        afterExport:1,
                         beforeUpdate:1,
-                        beforeLoading:1,
-                        afterLoading:1,
+                        beforeImport:1,
+                        afterImport:1,
                         afterUpdate:1
                     });
                 }).catch(shouldNever('update 1 fail'));
@@ -151,11 +151,11 @@ exports.testModel_MemoryDriver = function(test){
                     ]);
                     test.deepEqual(driver._storage.slice(1), entities); // inserted
                     testHooks.Log.fired({
-                        beforeSaving:2,
-                        afterSaving:2,
+                        beforeExport:2,
+                        afterExport:2,
                         beforeUpdate:1,
-                        beforeLoading:2,
-                        afterLoading:2,
+                        beforeImport:2,
+                        afterImport:2,
                         afterUpdate:1
                     });
                 }).catch(shouldNever('update array[2] fail'));
@@ -168,48 +168,48 @@ exports.testModel_MemoryDriver = function(test){
                     test.equal(driver._storage.length, 3); // length not changed
                     test.ok(e instanceof errors.EntityNotFound); // error ok
                     testHooks.Log.fired({
-                        beforeSaving:1,
-                        afterSaving:1,
+                        beforeExport:1,
+                        afterExport:1,
                         beforeUpdate:1
                         // no more hooks due to error
                     });
                 });
         },
-        // Upsert 1 new
+        // Save 1 new
         function(){
-            return Log.upsert({ id: 4, level: '2', title: 'fourth' })
+            return Log.save({ id: 4, level: '2', title: 'fourth' })
                 .then(function(entity){
                     test.deepEqual(entity, { id: 4, level: 2, title: 'fourth' }); // '2' converted
                     test.deepEqual(driver._storage.slice(3), [ entity ]);
                     testHooks.Log.fired({
-                        beforeSaving:1,
-                        afterSaving:1,
-                        beforeUpsert:1,
-                        beforeLoading:1,
-                        afterLoading:1,
-                        afterUpsert:1
+                        beforeExport:1,
+                        afterExport:1,
+                        beforeSave:1,
+                        beforeImport:1,
+                        afterImport:1,
+                        afterSave:1
                     });
-                }).catch(shouldNever('upsert 1 new fail'));
+                }).catch(shouldNever('save 1 new fail'));
         },
-        // Upsert 1 existing
+        // Save 1 existing
         function(){
-            return Log.upsert({ id: 1, level: 0, title: 'first', tags: ['a','b','c'] })
+            return Log.save({ id: 1, level: 0, title: 'first', tags: ['a','b','c'] })
                 .then(function(entity){
                     test.deepEqual(entity, { id: 1, level: 0, title: 'first', tags: ['a','b','c'] });
                     test.deepEqual(driver._storage.slice(0,1), [ entity ]);
                     testHooks.Log.fired({
-                        beforeSaving:1,
-                        afterSaving:1,
-                        beforeUpsert:1,
-                        beforeLoading:1,
-                        afterLoading:1,
-                        afterUpsert:1
+                        beforeExport:1,
+                        afterExport:1,
+                        beforeSave:1,
+                        beforeImport:1,
+                        afterImport:1,
+                        afterSave:1
                     });
-                }).catch(shouldNever('upsert 1 existing fail'));
+                }).catch(shouldNever('save 1 existing fail'));
         },
-        // TODO: Upsert array[2] new
-        // TODO: Upsert array[2] existing
-        // TODO: Upsert array[2] new & existing
+        // TODO: Save array[2] new
+        // TODO: Save array[2] existing
+        // TODO: Save array[2] new & existing
         // Remove 1
         function(){
             return Log.remove({ id:4 })
@@ -217,11 +217,11 @@ exports.testModel_MemoryDriver = function(test){
                     test.deepEqual(entity, { id: 4, level: 2, title: 'fourth' }); // full entity returned
                     test.deepEqual(driver._storage.length, 3);
                     testHooks.Log.fired({
-                        beforeSaving:1,
-                        afterSaving:1,
+                        beforeExport:1,
+                        afterExport:1,
                         beforeRemove:1,
-                        beforeLoading:1,
-                        afterLoading:1,
+                        beforeImport:1,
+                        afterImport:1,
                         afterRemove:1
                     });
                 }).catch(shouldNever('remove 1 fail'));
@@ -234,8 +234,8 @@ exports.testModel_MemoryDriver = function(test){
                     test.equal(driver._storage.length, 3); // length not changed
                     test.ok(e instanceof errors.EntityNotFound); // error ok
                     testHooks.Log.fired({
-                        beforeSaving:1,
-                        afterSaving:1,
+                        beforeExport:1,
+                        afterExport:1,
                         beforeRemove:1
                         // no more hooks due to error
                     });
@@ -258,8 +258,8 @@ exports.testModel_MemoryDriver = function(test){
                     test.deepEqual(entity, { id: 1, level: 0, title: 'first', tags: ['a','b','c'] });
                     testHooks.Log.fired({
                         beforeFindOne:1,
-                        beforeLoading:1,
-                        afterLoading:1,
+                        beforeImport:1,
+                        afterImport:1,
                         afterFindOne:1
                     });
                 })
@@ -272,8 +272,8 @@ exports.testModel_MemoryDriver = function(test){
                     test.deepEqual(entity, { id: 1, level: 0, title: 'first', tags: ['a','b','c'] });
                     testHooks.Log.fired({
                         beforeFindOne:1,
-                        beforeLoading:1,
-                        afterLoading:1,
+                        beforeImport:1,
+                        afterImport:1,
                         afterFindOne:1
                     });
                 })
@@ -327,8 +327,8 @@ exports.testModel_MemoryDriver = function(test){
                     test.deepEqual(entity, { id: 3, level: 1, title: 'Third' });
                     testHooks.Log.fired({
                         beforeFindOne: 1,
-                        beforeLoading: 1,
-                        afterLoading: 1,
+                        beforeImport: 1,
+                        afterImport: 1,
                         afterFindOne: 1
                     });
                 })
@@ -350,8 +350,8 @@ exports.testModel_MemoryDriver = function(test){
                     ]);
                     testHooks.Log.fired({
                         beforeFind: 1,
-                        beforeLoading: 2,
-                        afterLoading: 2,
+                        beforeImport: 2,
+                        afterImport: 2,
                         afterFind: 1
                     });
                 })
@@ -371,8 +371,8 @@ exports.testModel_MemoryDriver = function(test){
                     ]);
                     testHooks.Log.fired({
                         beforeFind: 1,
-                        beforeLoading: 1,
-                        afterLoading: 1,
+                        beforeImport: 1,
+                        afterImport: 1,
                         afterFind: 1
                     });
                 })
@@ -402,8 +402,8 @@ exports.testModel_MemoryDriver = function(test){
                     test.deepEqual(entity, { id: 3, level: 2, title: 'Third', tags:['changed'] });
                     testHooks.Log.fired({
                         beforeUpdateQuery: 1,
-                        beforeLoading: 1,
-                        afterLoading: 1,
+                        beforeImport: 1,
+                        afterImport: 1,
                         afterUpdateQuery: 1
                     });
                 })
@@ -436,8 +436,8 @@ exports.testModel_MemoryDriver = function(test){
                     test.deepEqual(entity, driver._storage[2]);
                     testHooks.Log.fired({
                         beforeUpdateQuery: 1,
-                        beforeLoading: 1,
-                        afterLoading: 1,
+                        beforeImport: 1,
+                        afterImport: 1,
                         afterUpdateQuery: 1
                     });
                 })
@@ -456,8 +456,8 @@ exports.testModel_MemoryDriver = function(test){
                     test.deepEqual(entity, driver._storage[3]);
                     testHooks.Log.fired({
                         beforeUpdateQuery: 1,
-                        beforeLoading: 1,
-                        afterLoading: 1,
+                        beforeImport: 1,
+                        afterImport: 1,
                         afterUpdateQuery: 1
                     });
                 })
@@ -479,8 +479,8 @@ exports.testModel_MemoryDriver = function(test){
                     test.equal(driver._storage.length, 4);
                     testHooks.Log.fired({
                         beforeUpdateQuery: 1,
-                        beforeLoading: 2,
-                        afterLoading: 2,
+                        beforeImport: 2,
+                        afterImport: 2,
                         afterUpdateQuery: 1
                     });
                 })
