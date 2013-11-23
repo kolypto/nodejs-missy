@@ -493,3 +493,60 @@ exports.testMissySort = function(test){
 
     test.done();
 };
+
+
+
+/** Test MissyUpdate
+ * @param {test|assert} test
+ */
+exports.testMissyUpdate = function(test){
+    var driver = new MemoryDriver(),
+        schema = new Schema(driver, {});
+
+    var Profile = schema.define('Page', {
+        id: Number,
+        title: String,
+        tags: Array
+    }, { pk: 'id' });
+
+    var upd;
+
+    upd = new u.MissyUpdate(Profile, {
+        a:1,
+        $set: {b:2},
+        $inc: {c:3},
+        $unset: {d:''},
+        $setOnInsert: {e:5},
+        $rename:{f:'g'},
+        title:1,
+        tags:'a'
+    });
+
+    test.deepEqual(upd.update, {
+        $set: {
+            a:1,
+            b:2, // moved
+            title:'1', // converted
+            tags:['a'] // converted
+        },
+        $inc: {c:3},
+        $unset: {d:''},
+        $setOnInsert: {e:5},
+        $rename:{f:'g'}
+    });
+
+    // MissyUpdate.entityUpdate
+    test.deepEqual(upd.entityUpdate({}), {a:1,b:2,c:3,title:'1',tags:['a']});
+    test.deepEqual(upd.entityUpdate({d:4,f:6}), {a:1,b:2,c:3,g:6,title:'1',tags:['a']});
+
+    // MissyUpdate.entityInsert
+    test.deepEqual(upd.entityInsert(), { a:1,b:2,c:3,e:5,title:'1',tags:['a']});
+    test.deepEqual(
+        upd.entityInsert(
+            new u.MissyCriteria(Profile, { id:10, n: {$gt:5} })
+        ),
+        { id:10,a:1,b:2,c:3,e:5,title:'1',tags:['a']}
+    );
+
+    test.done();
+};
