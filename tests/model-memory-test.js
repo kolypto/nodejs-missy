@@ -391,6 +391,102 @@ exports.testModel_MemoryDriver = function(test){
                 })
                 .catch(shouldNever('count()'));
         },
+
+        // updateQuery() upsert=false, existing
+        function(){
+            return Log.updateQuery(
+                    { id: 3, level:1 },
+                    { $inc: {level:1}, tags:'changed' }
+                )
+                .then(function(entity){
+                    test.deepEqual(entity, { id: 3, level: 2, title: 'Third', tags:['changed'] });
+                    testHooks.Log.fired({
+                        beforeUpdateQuery: 1,
+                        beforeLoading: 1,
+                        afterLoading: 1,
+                        afterUpdateQuery: 1
+                    });
+                })
+                .catch(shouldNever('updateQuery() upsert=false, existing'));
+        },
+        // updateQuery() upsert=false, missing
+        function(){
+            return Log.updateQuery(
+                { id: 4 },
+                { $inc: {level:1}, tags:'changed' }
+            )
+                .then(shouldNever('updateQuery() upsert=false, missing'))
+                .catch(function(e){
+                    test.ok(e instanceof errors.EntityNotFound);
+                    testHooks.Log.fired({
+                        beforeUpdateQuery: 1
+                    });
+                });
+        },
+
+        // updateQuery() upsert=true, existing
+        function(){
+            return Log.updateQuery(
+                { id: 3, level:2 },
+                { $inc: {level:-1}, $unset: {tags:''} },
+                { upsert: true }
+            )
+                .then(function(entity){
+                    test.deepEqual(entity, { id: 3, level: 1, title: 'Third' });
+                    test.deepEqual(entity, driver._storage[2]);
+                    testHooks.Log.fired({
+                        beforeUpdateQuery: 1,
+                        beforeLoading: 1,
+                        afterLoading: 1,
+                        afterUpdateQuery: 1
+                    });
+                })
+                .catch(shouldNever('updateQuery() upsert=true, existing'));
+        },
+
+        // updateQuery() upsert=true, missing
+        function(){
+            return Log.updateQuery(
+                { id: 4, level:1 },
+                { $inc: {level:1, hits:1}, title: 'Fourth' },
+                { upsert: true }
+            )
+                .then(function(entity){
+                    test.deepEqual(entity, { id: 4, level: 2, title: 'Fourth', hits: 1 });
+                    test.deepEqual(entity, driver._storage[3]);
+                    testHooks.Log.fired({
+                        beforeUpdateQuery: 1,
+                        beforeLoading: 1,
+                        afterLoading: 1,
+                        afterUpdateQuery: 1
+                    });
+                })
+                .catch(shouldNever('updateQuery() upsert=true, missing'));
+        },
+
+        // updateQuery() upsert=false, multi=true
+        function(){
+            return Log.updateQuery(
+                { id: { $gt:2 } },
+                { hits:2 },
+                { multi: true }
+            )
+                .then(function(entities){
+                    test.deepEqual(entities, [
+                        { id: 3, level: 1, title: 'Third', hits:2 },
+                        { id: 4, level: 2, title: 'Fourth', hits:2 }
+                    ]);
+                    test.equal(driver._storage.length, 4);
+                    testHooks.Log.fired({
+                        beforeUpdateQuery: 1,
+                        beforeLoading: 2,
+                        afterLoading: 2,
+                        afterUpdateQuery: 1
+                    });
+                })
+                .catch(shouldNever('updateQuery() upsert=true, multi=true'));
+        },
+
     ].reduce(Q.when, Q(1))
         .catch(shouldNever('Test error'))
         .then(function(){
