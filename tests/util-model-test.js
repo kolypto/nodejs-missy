@@ -232,6 +232,24 @@ exports.testMissyProjection = function(test){
         { projection: { a:1, b:1, c:1 }, inclusionMode: true }
     );
 
+    // String syntax
+    test.deepEqual(
+        new u.MissyProjection('*'),
+        { projection: {}, inclusionMode: false }
+    );
+    test.deepEqual(
+        new u.MissyProjection('a,b,c'),
+        { projection: { a:1, b:1, c:1 }, inclusionMode: true }
+    );
+    test.deepEqual(
+        new u.MissyProjection('+a,b,c'),
+        { projection: { a:1, b:1, c:1 }, inclusionMode: true }
+    );
+    test.deepEqual(
+        new u.MissyProjection('-a,b,c'),
+        { projection: { a:0, b:0, c:0 }, inclusionMode: false }
+    );
+
     // Object: inclusion
     p = new u.MissyProjection({ a:1, b:1, c:1 });
     test.deepEqual(p, { projection: { a:1, b:1, c:1 }, inclusionMode: true });
