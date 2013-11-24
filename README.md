@@ -14,7 +14,7 @@ Quick overview:
 * Absolutely no limitations on the underlying schema
 * Model events & hooks for full control
 * Rich data selection control: projections, limit/offset, sorting
-* Effective model relations, even between databases
+* Model relations, even between databases
 * Honors custom fields not defined in the model: useful for schema-less databases like MongoDB
 * MongoDB-style API
 * Reliable DB reconnecting ; delaying query execution until it connects (optional)
@@ -23,10 +23,453 @@ Quick overview:
 * Documented and rich on comments
 * 100% tests coverage
 
-Reference
-=========
 
-**UNDER DEVELOPMENT**
 
-{:toc}
+Table Of Contents
+=================
 
+* <a href="missy">Missy</a>
+* <a href="table-of-contents">Table Of Contents</a>
+* <a href="glossary">Glossary</a>
+* <a href="core-classes">Core Classes</a>
+    * <a href="converter">Converter</a>
+    * <a href="missyprojection">MissyProjection</a>
+    * <a href="missycriteria">MissyCriteria</a>
+    * <a href="missysort">MissySort</a>
+    * <a href="missyupdate">MissyUpdate</a>
+* <a href="drivers">Drivers</a>
+* <a href="schema">Schema</a>
+* <a href="model">Model</a>
+    * <a href="model-definition">Model Definition</a>
+        * <a href="fields-definition">Fields Definition</a>
+        * <a href="model-options">Model Options</a>
+    * <a href="helpers">Helpers</a>
+        * <a href="modelentityimportentity">Model.entityImport(entity)</a>
+        * <a href="modelentityexportentity">Model.entityExport(entity)</a>
+    * <a href="operations">Operations</a>
+        * <a href="read-operations">Read Operations</a>
+            * <a href="modelgetpk-fields">Model.get(pk, fields)</a>
+            * <a href="modelfindonecriteria-fields-sort-options">Model.findOne(criteria, fields, sort, options)</a>
+            * <a href="modelfindcriteria-fields-sort-options">Model.find(criteria, fields, sort, options)</a>
+            * <a href="modelcountcriteria-options">Model.count(criteria, options)</a>
+        * <a href="write-operations">Write Operations</a>
+            * <a href="modelinsertentities-options">Model.insert(entities, options)</a>
+            * <a href="modelupdadeentities-options">Model.updade(entities, options)</a>
+            * <a href="modelsaveentities-options">Model.save(entities, options)</a>
+            * <a href="modelremoveentities-options">Model.remove(entities, options)</a>
+        * <a href="queries">Queries</a>
+            * <a href="modelupdatequerycriteria-update-options">Model.updateQuery(criteria, update, options)</a>
+        * <a href="using-the-driver-directly">Using The Driver Directly</a>
+    * <a href="model-hooks">Model Hooks</a>
+    * <a href="relations">Relations</a>
+        * <a href="defining-relations">Defining Relations</a>
+        * <a href="loading-relations">Loading Relations</a>
+        * <a href="eager-load">Eager Load</a>
+            * <a href="deep-eager-load">Deep Eager Load</a>
+
+
+
+
+Glossary
+========
+
+Commonly used terms:
+
+<dl>
+    <dt>Driver</dt>
+    <dd>Database driver that handles low-level Missy queries like find, insert, save, etc.</dd>
+    <dt>Schema</dt>
+    <dd>A collection of Models bound to a database Driver. Also, Type Handlers are defined on it.</dd>
+    <dt>Type Handler</dt>
+    <dd>A class that converts Field values to/from the database</dd>
+    <dt>Entity</dt>
+    <dd>An entity is a document persisted in the database</dd>
+    <dt>Model</dt>
+    <dd>A Model defines fields on some DB namespace (table, collection, etc) and provides methods to access Entities.</dd>
+    <dt>Field</dt>
+    <dd>Fields are defined on a model and specify its name and type. Other options are available</dd>
+    <dt>Relation</dt>
+    <dd>A relation is a way of accessing the associated entities</dd>
+</dl>
+
+
+
+
+
+
+Core Classes
+============
+
+Most Missy methods use these so you'll need to know how to work with them. This includes:
+
+* Converting values to/from the database format
+* Specifying field projections
+* Search criteria format
+* Sorting entities
+* Specifying the update expressions
+
+Though most of them are designed after MongoDB, they're applicable to all DB drivers with no limitations.
+
+
+
+Converter
+---------
+
+Source: *lib/util/model.js#Converter*
+
+`Converter` transparently transparently converts field values to/from the DB format.
+Each field has its own *type handler* defined by the model fields.
+
+NOTE: `Converter` does not touch fields that are not defined in the model! Keep this in mind when working with
+NoSQL databases as in general documents can contain arbitrary fields.
+
+Consider the example:
+
+```js
+var User = schema.define('User', {
+    id: Number,
+    name: String,
+    login: { type: 'string', required: true },
+    tags: Array
+};
+
+User.save({ id: '1', name: 111, login: 'first', tags:'events' });
+User.findOne({ id: '1' })
+```
+
+On save, the 'id' field is converted to a number, name and login - to string, tags - to array
+
+On find, the query criteria 'id' field is converted to a number, and the resulting entity is converted back.
+
+### Type Handlers
+
+`Converter` is driven by *type handlers*: classes which can convert a JS value to the DB format and back.
+
+Each *type handler* has a name to be referenced in the model *fields definition*.
+Alternatively, you can use a JS built-in object as a shortcut.
+
+Missy defines some built-in type handlers in *lib/types/*:
+
+|Name         | Shortcut         | JS Type        | Default           | Comment                                                       |
+|-------------|------------------|----------------|-------------------|---------------------------------------------------------------|
+| any         | -                | *              | undefined         | No-op converter to use the value as is                        |
+| string      | String           | `String,null`  | `'', null`        | Ensure a string, or `null`                                    |
+| number      | Number           | `Number,null`  | `0, null`         | Ensure a number, or `null`                                    |
+| date        | Date             | `Date,null`    | `null`            | Convert to JS `Date`, or `null`                               |
+| object      | Object           | `Object,null`  | `{}, null`        | Use a JS `Object`, or `null`.                                 |
+| array       | Array            | `Array,null`   | `[], null`        | Ensure an array, or `null`. Creates arrays from scalar values |
+| json        | -                | `String,null`  | `null`            | Un/serializes JSON, or `null`. Throws `MissyTypeError` on parse error.  |
+
+Note: most built-in types allow `null` value only when the field is not defined as `required` (see below).
+
+Note: DB drivers may define own type handlers and even redefine standard types for all models handled by the driver.
+
+### Custom Type Handlers
+
+A *type handler* is a class that implements the `IMissyTypeHandler` interface (*lib/interfaces.js*):
+
+* Constructor receives 2 arguments: the schema to bind to, and the type handler name.
+* Method `load(value, field)` which converts a value loaded from the database
+* Method `save(value, field)` which converts a value to be stored to the database
+* Method `norm(value, field)` which normalizes the value
+* Has 2 properties: `schema` and `name`
+
+Once the type handler is defined, you register in on a `Schema`:
+
+```js
+var stringTypeHandler = require('missy').types.String;
+schema.registerType('string', stringTypeHandler);
+
+// Now you can use it on a model:
+var User = schema.define('User', {
+    login: { type: 'string' }
+});
+```
+
+Note: built-in types are registered automatically, there's no need to follow this example.
+
+
+
+MissyProjection
+---------------
+
+Source: *lib/util/model.js#MissyProjection*
+
+When selecting entities from the DB, you may want to fetch a subset of fields. This is what `MissyProjection` does:
+allows you to specify the fields to include or exclude from the resulting entities.
+
+`MissyProjection` closely follows
+[MongoDB Projections](http://docs.mongodb.org/manual/core/read-operations/#projections) specification.
+
+A projection can be used in one of the 3 available modes:
+
+* *all mode*. All available fields are fetched.
+* *inclusion mode*. Fetch the named fields only.
+* *exclusion mode*. Fetch all fields except the named ones.
+
+The following projection input formats are supported:
+
+* **String syntax**. Projection mode + Comma-separated field names.
+
+    * `'*'`: include all fields
+    * `'+a,b,c'`: include only fields *a, b, c*
+    * `'-a,b,c'`: exclude fields *a, b, c*
+
+* **Array syntax**. Array of field names to include.
+
+    * `[]`: include all fields
+    * `['a','b','c']`: include only fields *a, b, c*
+    * Exclusion mode is not supported
+
+* **Object syntax**. MongoDB-style projection object.
+
+    * `{}`: include all fields
+    * `{ a:1, b:1, c:1 }`: include only fields *a, b, c*
+    * `{ a:0, b:0, c:0 }`: exclude fields *a, b, c*
+
+* **MissyCriteria**. A `MissyCriteria` object.
+
+Usage example:
+
+```js
+var User = schema.define('User', {
+    id: Number,
+    login: String,
+    //...
+});
+
+User.find({}, { id:1, login: 1 }) // only fetch 2 fields: id, login
+    .then(function(users){ ... });
+```
+
+
+
+MissyCriteria
+-------------
+
+Source: *lib/util/model.js#MissyCriteria*
+
+Specifies the search conditions.
+
+Implements a simplified version of
+[MongoDB `collection.find` criteria document](http://docs.mongodb.org/manual/reference/method/db.collection.find/):
+
+* Use `{ field: value, .. }` syntax to match entities by equality ;
+* Use `{field: { $operator: value, .. }, .. }` syntax to compare with an operator.
+
+Example:
+
+```js
+{
+    id: 1, // equality
+    login: { $eq: 'kolypto' }, // equality with an operator
+    role: { $in: ['admin','user'] }, // $in operator example
+    age: { $gt: 18, $lt: 22 } // 2 operators on a single field
+}
+```
+
+Note: To keep the implementation simple and effective, Missy does not support complex queries and logical operators.
+    If you need them, see [Using The Driver Directly](#using-the-driver-directly).
+
+The following operators are supported:
+
+| Operator | Definition | Example                                 | Comment                                   |
+|----------|------------|-----------------------------------------|-------------------------------------------|
+| `$gt`    | >          | `{ money: { $gt: 20000 } }`             | Greater than                              |
+| `$gte`   | <=         | `{ height: { $gte: 180 } }`             | Greater than or equal                     |
+| `$eq`    | ==         | `{ login: { $eq: 'kolypto' } }`         | Equal to                                  |
+| `$ne`    | !=         | `{ name: { $ne: 'Lucy' } }`             | Not equal to                              |
+| `$lt`    | <          | `{ age: { $lt: 18 } }`                  | Lower than                                |
+| `$lte`   | <=         | `{ weight: { $lte: 50 } }`              | Lower than or equal                       |
+| `$in`    | IN         | `{ role: { $in: ['adm', 'usr' ] } }`    | In array of values. Scalar operand is converted to array. |
+| `$nin`   | NOT IN     | `{ state: { $nin: ['init','error'] } }` | Not in array of values. Scalar operand is converted to array. |
+
+Before querying, `MissyCriteria` uses `Converter` to convert the given field values to the DB types.
+For instance, the `{ id: '1' }` criteria will be converted to `{ id: { $eq: 1 } }`.
+
+Example:
+
+```js
+var User = schema.define('User', {
+    age: Number,
+    //...
+});
+
+User.find({ age: { $gt: 18, $lt: 22 } }) // 18 <= age <= 22
+    .then(function(users){ ... });
+```
+
+
+
+MissySort
+---------
+
+Source: *lib/util/model.js#MissySort*
+
+Defines the sort order of the result set.
+
+`MissySort` closely follows the
+[MongoDB sort](http://docs.mongodb.org/manual/reference/method/cursor.sort/#cursor-sort) specification.
+
+The following sort input formats are supported:
+
+* **String syntax**. Comma-separated list of fields suffixed by the sorting operator: `+` or `-`.
+
+    * `a,b+.c-`: sort by *a* asc, *b* asc, *c* desc
+
+* **Array syntax**. Same as *String syntax*, but split into an array.
+
+    * `['a', 'b+', 'c-' ]`: sort by *a* asc, *b* asc, *c* desc
+
+* **Object syntax**. MongoDB-style object which maps field names to sorting operator: `1` or `-1`.
+
+    * `{ a: 1, b: 1, c: -1 }`: sort by *a* asc, *b* asc, *c* desc
+
+Example:
+
+```js
+var User = schema.define('User', {
+    id: Number,
+    age: Number,
+    //...
+});
+
+User.find({}, {}, { age: -1 }) // sort by `age` descending
+    .then(function(users){ ... });
+```
+
+
+
+MissyUpdate
+-----------
+
+Source: *lib/util/model.js#MissyUpdate*
+
+Declares the update operations to perform on matching entities.
+
+`MissyUpdate` implements the simplified form of
+[MongoDB update document](http://docs.mongodb.org/manual/reference/method/db.collection.update/#update-parameter).
+
+* Use `{ field: value, .. }` syntax to set a field's value ;
+* Use `{ $operator: { field: value } }` syntax to apply a more complex action defined by the operator.
+
+Example:
+
+```js
+{
+    mtime: new Date(),                      // assign a value
+    $set: { mtime: new Date() },            // assign a value
+    $inc: { hits: +1 },                     // increment a field
+    $unset: { error: '' },                  // unset a field
+    $setOnInsert: { ctime: new Date() },    // set on insert, not update
+    $rename: { 'current': 'previous' }      // rename a field
+}
+```
+
+The following operators are supported:
+
+| Operator          | Comment                                                                                          |
+|-------------------|--------------------------------------------------------------------------------------------------|
+| `$set`            | Set the value of a field                                                                         |
+| `$inc`            | Increment the value of a field by the specified amount. To decrement, use negative amounts       |
+| `$unset`          | Remove the field (with some drivers: set it to `null`)                                           |
+| `$setOnInsert`    | Set the value of a field only when a new entity is inserted (see `upsert` with <a href="#modelupdatequerycriteria-update-options">Model.updateQuery</a>)      |
+| `$rename`         | Rename a field                                                                                   |
+
+Before querying, `MissyUpdate` uses `Converter` to convert the given field values to the DB types.
+For instance, the `{ id: '1' }` criteria will be converted to `{ $set: { id: 1 } }`.
+
+Example:
+
+```js
+var User = schema.define('User', {
+    id: Number,
+    mtime: Date,
+    //...
+});
+User.updateQuery({ id: 1 }, { $set: { mtime: new Date(); } }) // update mtime without fetching
+    .then(function(user){ ... });
+```
+
+
+
+
+
+
+Drivers
+=======
+
+
+
+
+
+
+Schema
+======
+
+
+
+
+
+
+Model
+=====
+
+Model Definition
+----------------
+
+### Fields Definition
+
+### Model Options
+
+Helpers
+-------
+
+### Model.entityImport(entity)
+### Model.entityExport(entity)
+
+Operations
+----------
+
+### Read Operations
+
+#### Model.get(pk, fields)
+
+#### Model.findOne(criteria, fields, sort, options)
+
+#### Model.find(criteria, fields, sort, options)
+
+#### Model.count(criteria, options)
+
+### Write Operations
+
+#### Model.insert(entities, options)
+
+#### Model.updade(entities, options)
+
+#### Model.save(entities, options)
+
+#### Model.remove(entities, options)
+
+### Queries
+
+#### Model.updateQuery(criteria, update, options)
+
+### Using The Driver Directly
+
+Missy search criteria is limited in order to keep the implementation simple. In order to make complex queries, you'll
+need to use the Driver directly. You still can use Missy in this case.
+
+Model Hooks
+-----------
+
+Relations
+---------
+
+### Defining Relations
+
+### Loading Relations
+
+### Eager Load
+
+#### Deep Eager Load
