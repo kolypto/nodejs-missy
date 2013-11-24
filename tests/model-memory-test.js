@@ -76,7 +76,7 @@ exports.testModel_MemoryDriver = function(test){
             return Log.insert({ id: 1, level: 0, title: 'first', tags: ['a','b','c'] })
                 .then(function(entity){
                     test.deepEqual(entity, { id: 1, level: 0, title: 'first', tags: ['a','b','c'] });
-                    test.deepEqual(driver._storage.slice(0), [ entity ]);
+                    test.deepEqual(driver.getTable(Log).slice(0), [ entity ]);
                     testHooks.Log.fired({
                         beforeExport:1,
                         afterExport:1,
@@ -97,7 +97,7 @@ exports.testModel_MemoryDriver = function(test){
                         { id: 2, level: 0, title: 'second', entry: {a:1,b:2,c:3} }, // '2', '0' converted
                         { id: 3, level: 1, title: 'third' }
                     ]);
-                    test.deepEqual(driver._storage.slice(1), entities); // inserted
+                    test.deepEqual(driver.getTable(Log).slice(1), entities); // inserted
                     testHooks.Log.fired({
                         beforeExport:2,
                         afterExport:2,
@@ -113,7 +113,7 @@ exports.testModel_MemoryDriver = function(test){
             return Log.insert({ id: 1 })
                 .then(shouldNever('insert non-unique success'))
                 .catch(function(e){
-                    test.equal(driver._storage.length, 3); // length not changed
+                    test.equal(driver.getTable(Log).length, 3); // length not changed
                     test.ok(e instanceof errors.EntityExists); // error ok
                     testHooks.Log.fired({
                         beforeExport:1,
@@ -128,7 +128,7 @@ exports.testModel_MemoryDriver = function(test){
             return Log.update({ id: 1, level: '0', title: 'First', tags: ['a','b','c','d'] })
                 .then(function(entity){
                     test.deepEqual(entity, { id: 1, level: 0, title: 'First', tags: ['a','b','c','d'] }); // '0' converted
-                    test.deepEqual(driver._storage.slice(0,1), [ entity ]); // replaced
+                    test.deepEqual(driver.getTable(Log).slice(0,1), [ entity ]); // replaced
                     testHooks.Log.fired({
                         beforeExport:1,
                         afterExport:1,
@@ -149,7 +149,7 @@ exports.testModel_MemoryDriver = function(test){
                         { id: 2, level: 0, title: 'Second', entry: {a:1,b:2,c:3,d:4} }, // '2', '0' converted
                         { id: 3, level: 1, title: 'Third' }
                     ]);
-                    test.deepEqual(driver._storage.slice(1), entities); // inserted
+                    test.deepEqual(driver.getTable(Log).slice(1), entities); // inserted
                     testHooks.Log.fired({
                         beforeExport:2,
                         afterExport:2,
@@ -165,7 +165,7 @@ exports.testModel_MemoryDriver = function(test){
             return Log.update({ id: 100 })
                 .then(shouldNever('update non-existing success'))
                 .catch(function(e){
-                    test.equal(driver._storage.length, 3); // length not changed
+                    test.equal(driver.getTable(Log).length, 3); // length not changed
                     test.ok(e instanceof errors.EntityNotFound); // error ok
                     testHooks.Log.fired({
                         beforeExport:1,
@@ -180,7 +180,7 @@ exports.testModel_MemoryDriver = function(test){
             return Log.save({ id: 4, level: '2', title: 'fourth' })
                 .then(function(entity){
                     test.deepEqual(entity, { id: 4, level: 2, title: 'fourth' }); // '2' converted
-                    test.deepEqual(driver._storage.slice(3), [ entity ]);
+                    test.deepEqual(driver.getTable(Log).slice(3), [ entity ]);
                     testHooks.Log.fired({
                         beforeExport:1,
                         afterExport:1,
@@ -196,7 +196,7 @@ exports.testModel_MemoryDriver = function(test){
             return Log.save({ id: 1, level: 0, title: 'first', tags: ['a','b','c'] })
                 .then(function(entity){
                     test.deepEqual(entity, { id: 1, level: 0, title: 'first', tags: ['a','b','c'] });
-                    test.deepEqual(driver._storage.slice(0,1), [ entity ]);
+                    test.deepEqual(driver.getTable(Log).slice(0,1), [ entity ]);
                     testHooks.Log.fired({
                         beforeExport:1,
                         afterExport:1,
@@ -215,7 +215,7 @@ exports.testModel_MemoryDriver = function(test){
             return Log.remove({ id:4 })
                 .then(function(entity){
                     test.deepEqual(entity, { id: 4, level: 2, title: 'fourth' }); // full entity returned
-                    test.deepEqual(driver._storage.length, 3);
+                    test.deepEqual(driver.getTable(Log).length, 3);
                     testHooks.Log.fired({
                         beforeExport:1,
                         afterExport:1,
@@ -231,7 +231,7 @@ exports.testModel_MemoryDriver = function(test){
             return Log.remove({ id: 100 })
                 .then(shouldNever('remove non-existing success'))
                 .catch(function(e){
-                    test.equal(driver._storage.length, 3); // length not changed
+                    test.equal(driver.getTable(Log).length, 3); // length not changed
                     test.ok(e instanceof errors.EntityNotFound); // error ok
                     testHooks.Log.fired({
                         beforeExport:1,
@@ -244,7 +244,7 @@ exports.testModel_MemoryDriver = function(test){
 
         // STORAGE CONSISTENCY TEST
         function(){
-            test.deepEqual(driver._storage, [
+            test.deepEqual(driver.getTable(Log), [
                 { id: 1, level: 0, title: 'first', tags: ['a','b','c'] },
                 { id: 2, level: 0, title: 'Second', entry: {a:1,b:2,c:3,d:4} },
                 { id: 3, level: 1, title: 'Third' }
@@ -433,7 +433,7 @@ exports.testModel_MemoryDriver = function(test){
             )
                 .then(function(entity){
                     test.deepEqual(entity, { id: 3, level: 1, title: 'Third' });
-                    test.deepEqual(entity, driver._storage[2]);
+                    test.deepEqual(entity, driver.getTable(Log)[2]);
                     testHooks.Log.fired({
                         beforeUpdateQuery: 1,
                         beforeImport: 1,
@@ -453,7 +453,7 @@ exports.testModel_MemoryDriver = function(test){
             )
                 .then(function(entity){
                     test.deepEqual(entity, { id: 4, level: 2, title: 'Fourth', hits: 1 });
-                    test.deepEqual(entity, driver._storage[3]);
+                    test.deepEqual(entity, driver.getTable(Log)[3]);
                     testHooks.Log.fired({
                         beforeUpdateQuery: 1,
                         beforeImport: 1,
@@ -476,7 +476,7 @@ exports.testModel_MemoryDriver = function(test){
                         { id: 3, level: 1, title: 'Third', hits:2 },
                         { id: 4, level: 2, title: 'Fourth', hits:2 }
                     ]);
-                    test.equal(driver._storage.length, 4);
+                    test.equal(driver.getTable(Log).length, 4);
                     testHooks.Log.fired({
                         beforeUpdateQuery: 1,
                         beforeImport: 2,
