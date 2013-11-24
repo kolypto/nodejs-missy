@@ -225,6 +225,7 @@ exports.testMissyProjection = function(test){
     test.deepEqual(new u.MissyProjection({}), { projection: {}, inclusionMode: false });
     test.deepEqual(new u.MissyProjection(''), { projection: {}, inclusionMode: false });
     test.deepEqual(new u.MissyProjection([]), { projection: {}, inclusionMode: false });
+    test.deepEqual(new u.MissyProjection().toString(), '*');
 
     // Array syntax
     test.deepEqual(
@@ -253,10 +254,12 @@ exports.testMissyProjection = function(test){
     // Object: inclusion
     p = new u.MissyProjection({ a:1, b:1, c:1 });
     test.deepEqual(p, { projection: { a:1, b:1, c:1 }, inclusionMode: true });
+    test.equal(p.toString(), '+a,b,c');
 
     // Object: exclusion
     p = new u.MissyProjection({ a:0, b:0, c:0 });
     test.deepEqual(p, { projection: { a:0, b:0, c:0 }, inclusionMode: false });
+    test.equal(p.toString(), '-a,b,c');
 
     // getFieldDetails() when empty
     p = new u.MissyProjection();
@@ -458,6 +461,7 @@ exports.testMissySort = function(test){
     // String syntax
     s = new u.MissySort('a,b+,c-');
     test.deepEqual(s, { sort: { a:1, b:1, c:-1 } });
+    test.equal(s.toString(), 'a+,b+,c-');
 
     // Array syntax
     s = new u.MissySort(['a','b+', 'c-']);
