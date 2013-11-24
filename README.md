@@ -17,10 +17,10 @@ Quick overview:
 * Effective model relations, even between databases
 * Honors custom fields not defined in the model: useful for schema-less databases like MongoDB
 * MongoDB-style API
-* Reliable DB disconnect handling (todo)
+* Reliable DB reconnecting ; delaying query execution until it connects (optional)
 * Promise-based
 * Amazingly simple and well-structured
-* Well-documented and rich on comments
+* Documented and rich on comments
 * 100% tests coverage
 
 Reference

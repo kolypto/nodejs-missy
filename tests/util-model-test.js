@@ -58,7 +58,8 @@ exports.testConverter = function(test){
     test.deepEqual(User.options, {
         table: 'users', // generated: lowercase + plural
         pk: [ 'id' ], // default
-        required: false // default
+        required: false, // default
+        entityPrototype: undefined // default
     });
     test.deepEqual(Object.keys(User.fields), ['id','name','login','ctime','obj','roles','json','any', 'smile']);
     test.deepEqual(User.fields.id, { name: 'id', type: 'number', required: false, _model: User, _typeHandler: schema.types['number'] });
@@ -77,7 +78,8 @@ exports.testConverter = function(test){
     test.deepEqual(Profile.options, {
         table: 'user_profiles', // override
         pk: [ 'user_id', 'name' ], // override
-        required: true // override
+        required: true, // override
+        entityPrototype: undefined // default
     });
 
     // Test converter: Load
