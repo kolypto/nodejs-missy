@@ -203,11 +203,11 @@ exports.testModelRelations = function(test){
                 },
             ].reduce(Q.when, Q(1));
         },
-        // Test: Model.with().find()
+        // Test: Model.withRelated().find()
         function(){
             User
-                .with('profile')
-                .with('devices', { uid: 1, title: 1 }, { title: -1 })
+                .withRelated('profile')
+                .withRelated('devices', { uid: 1, title: 1 }, { title: -1 })
                 .find({}, { id:1 }, { id:-1 })
                 .then(function(entities){
                     test.equal(entities.length, 4);
