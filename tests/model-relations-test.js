@@ -201,7 +201,41 @@ exports.testModelRelations = function(test){
                         })
                         .catch(shouldNever('Test: Model.loadRelated :: hasMany: Device.messages'));
                 },
+                // hasOne with duplicate entities
+                function(){
+                    User.loadRelated([
+                            { id: 1 },
+                            { id: 1 },
+                            { id: 1 }
+                        ], 'profile')
+                        .then(function(entities){
+                            test.equal(entities.length, 3);
+                            test.deepEqual(entities[0], { id: 1, profile: { id:1, name: 'First Man', age: 25 } });
+                            test.deepEqual(entities[1], { id: 1, profile: { id:1, name: 'First Man', age: 25 } });
+                            test.deepEqual(entities[2], { id: 1, profile: { id:1, name: 'First Man', age: 25 } });
+                        })
+                        .catch(shouldNever('Test: Model.loadRelated :: hasOne: User.profile'));
+                },
             ].reduce(Q.when, Q(1));
+        },
+        // Test: Model.withRelated().findOne()
+        function(){
+            User
+                .withRelated('profile')
+                .withRelated('devices', { uid: 1, title: 1 }, { title: -1 })
+                .findOne({ id:1 }, {id:1})
+                .then(function(entity){
+                    test.deepEqual(entity, {
+                        id:1,
+                        profile: { id:1, name: 'First Man', age: 25 },
+                        devices: [
+                            { uid: 1, title: 'Samsung' },
+                            { uid: 1, title: 'IBM' },
+                            { uid: 1, title: 'HTC' }
+                        ]
+                    });
+                })
+                .catch(shouldNever('Test: Model.withRelated().find()'));
         },
         // Test: Model.withRelated().find()
         function(){
@@ -238,7 +272,70 @@ exports.testModelRelations = function(test){
                         ]
                     });
                 })
-                .catch(shouldNever('Test: Model.with().find()'));
+                .catch(shouldNever('Test: Model.withRelated().find()'));
+        },
+        // Test: Model.withRelated().find() and deep eager loading
+        function(){
+            User
+                .withRelated('devices')
+                .withRelated('devices.messages')
+                .withRelated('devices.messages.device')
+                .withRelated('devices.messages.device.user', { id:1 })
+                .find({}, { id:1 }, { id:-1 })
+                .then(function(entities){
+                    test.equal(entities.length, 4);
+                    test.deepEqual(entities[0], {
+                        id:4,
+                        devices: []
+                    });
+                    test.deepEqual(entities[1], {
+                        id:3,
+                        devices: []
+                    });
+                    test.deepEqual(entities[2], {
+                        id:2,
+                        devices: [
+                            { uid: 2, type: 'phone', sn: '3456', title: 'Sony', messages: [
+                                { device_type: 'phone', device_sn: '3456', msg_id: 2, body: 'Hi',
+                                    device: { uid: 2, type: 'phone', sn: '3456', title: 'Sony',
+                                        user: { id: 2 }
+                                    }
+                                },
+                                { device_type: 'phone', device_sn: '3456', msg_id: 4, body: 'Fine',
+                                    device: { uid: 2, type: 'phone', sn: '3456', title: 'Sony',
+                                        user: { id: 2 }
+                                    }
+                                }
+                            ] }
+                        ]
+                    });
+                    test.deepEqual(entities[3], {
+                        id:1,
+                        devices: [
+                            { uid: 1, type: 'pc', sn: '1234', title: 'IBM', messages: [] },
+                            { uid: 1, type: 'phone', sn: '5678', title: 'HTC', messages:[
+                                { device_type: 'phone', device_sn: '5678', msg_id: 1, body: 'Hello',
+                                    device: { uid: 1, type: 'phone', sn: '5678', title: 'HTC',
+                                        user: { id: 1 }
+                                    }
+                                },
+                                { device_type: 'phone', device_sn: '5678', msg_id: 3, body: 'How are u?',
+                                    device: { uid: 1, type: 'phone', sn: '5678', title: 'HTC',
+                                        user: { id: 1 }
+                                    }
+                                },
+                            ] },
+                            { uid: 1, type: 'tablet', sn: '9012', title: 'Samsung', messages:[
+                                { device_type: 'tablet', device_sn: '9012', msg_id: 5, body: 'Wanna fun?',
+                                    device: { uid: 1, type: 'tablet', sn: '9012', title: 'Samsung',
+                                        user: { id: 1 }
+                                    }
+                                }
+                            ] }
+                        ]
+                    });
+                })
+                .catch(shouldNever('Test: Model.withRelated().find() and deep eager loading'));
         }
     ].reduce(Q.when, Q(1))
         .catch(shouldNever('Test error'))
