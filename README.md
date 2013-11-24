@@ -14,11 +14,12 @@ Quick overview:
 * Absolutely no limitations on the underlying schema
 * Model events & hooks for full control
 * Rich data selection control: projections, limit/offset, sorting
-* Relations, lazy-load and eager-load support
-* Able to use custom fields not defined in the model: useful for MongoDB
+* Effective model relations, even between databases
+* Honors custom fields not defined in the model: useful for schema-less databases like MongoDB
 * MongoDB-style API
 * Promise-based
 * Amazingly simple and well-structured
+* Well-documented and rich on comments
 * 100% tests coverage
 
 Reference
