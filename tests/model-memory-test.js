@@ -71,6 +71,30 @@ exports.testModel_MemoryDriver = function(test){
 
     // Test
     [
+        // Model.options.entityPrototype
+        function(){
+            var Test = schema.define('Test', {
+                id: Number,
+                title: String
+            }, {
+                entityPrototype: {
+                    getTitle: function(){
+                        return this.title;
+                    }
+                }
+            });
+
+            return Q()
+                .then(function(){
+                    return Test.save({ id:1, title: 'Test' });
+                })
+                .then(function(){
+                    return Test.findOne({id:1});
+                })
+                .then(function(entity){
+                    test.equal(entity.getTitle(), 'Test');
+                });
+        },
         // Insert 1
         function(){
             return Log.insert({ id: 1, level: 0, title: 'first', tags: ['a','b','c'] })
