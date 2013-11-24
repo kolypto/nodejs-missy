@@ -17,6 +17,7 @@ Quick overview:
 * Effective model relations, even between databases
 * Honors custom fields not defined in the model: useful for schema-less databases like MongoDB
 * MongoDB-style API
+* Reliable DB disconnect handling (todo)
 * Promise-based
 * Amazingly simple and well-structured
 * Well-documented and rich on comments
