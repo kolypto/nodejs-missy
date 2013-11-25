@@ -17,6 +17,8 @@ exports.testModelRelations = function(test){
         schema = new Schema(driver, {})
         ;
 
+    schema.connect(); // just ignore the result
+
     // Models
     var User = schema.define('User', {
         id: Number,
@@ -339,7 +341,7 @@ exports.testModelRelations = function(test){
         }
     ].reduce(Q.when, Q(1))
         .catch(shouldNever('Test error'))
-        .then(function(){
+        .finally(function(){
             test.done();
         }).done();
 };

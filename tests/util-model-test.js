@@ -16,6 +16,8 @@ exports.testConverter = function(test){
     var driver = new MemoryDriver(),
         schema = new Schema(driver, {});
 
+    schema.connect(); // just ignore the result
+
     // Define a custom type handler
     function SmileTypeHandler(schema, name){
         return {
@@ -210,6 +212,8 @@ exports.testMissyProjection = function(test){
     var driver = new MemoryDriver(),
         schema = new Schema(driver, {});
 
+    schema.connect(); // just ignore the result
+
     var Profile = schema.define('Profile', {
         user_id: Number,
         name: String,
@@ -313,6 +317,8 @@ exports.testMissyProjection = function(test){
 exports.testMissyCriteria = function(test){
     var driver = new MemoryDriver(),
         schema = new Schema(driver, {});
+
+    schema.connect(); // just ignore the result
 
     var Profile = schema.define('Page', {
         category: String,
@@ -526,6 +532,8 @@ exports.testMissySort = function(test){
 exports.testMissyUpdate = function(test){
     var driver = new MemoryDriver(),
         schema = new Schema(driver, {});
+
+    schema.connect(); // just ignore the result
 
     var Profile = schema.define('Page', {
         id: Number,

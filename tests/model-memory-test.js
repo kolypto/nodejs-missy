@@ -17,6 +17,8 @@ exports.testModel_MemoryDriver = function(test){
         schema = new Schema(driver, {})
         ;
 
+    schema.connect(); // just ignore the result
+
     // Model
     var Log = schema.define('Log', {
         id: Number,
@@ -513,7 +515,7 @@ exports.testModel_MemoryDriver = function(test){
 
     ].reduce(Q.when, Q(1))
         .catch(shouldNever('Test error'))
-        .then(function(){
+        .finally(function(){
             test.done();
         }).done();
 };
