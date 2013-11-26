@@ -28,44 +28,53 @@ Quick overview:
 Table Of Contents
 =================
 
-* <a href="missy">Missy</a>
-* <a href="table-of-contents">Table Of Contents</a>
-* <a href="glossary">Glossary</a>
-* <a href="core-classes">Core Classes</a>
-    * <a href="converter">Converter</a>
-    * <a href="missyprojection">MissyProjection</a>
-    * <a href="missycriteria">MissyCriteria</a>
-    * <a href="missysort">MissySort</a>
-    * <a href="missyupdate">MissyUpdate</a>
-* <a href="drivers">Drivers</a>
-* <a href="schema">Schema</a>
-* <a href="model">Model</a>
-    * <a href="model-definition">Model Definition</a>
-        * <a href="fields-definition">Fields Definition</a>
-        * <a href="model-options">Model Options</a>
-    * <a href="helpers">Helpers</a>
-        * <a href="modelentityimportentity">Model.entityImport(entity)</a>
-        * <a href="modelentityexportentity">Model.entityExport(entity)</a>
-    * <a href="operations">Operations</a>
-        * <a href="read-operations">Read Operations</a>
-            * <a href="modelgetpk-fields">Model.get(pk, fields)</a>
-            * <a href="modelfindonecriteria-fields-sort-options">Model.findOne(criteria, fields, sort, options)</a>
-            * <a href="modelfindcriteria-fields-sort-options">Model.find(criteria, fields, sort, options)</a>
-            * <a href="modelcountcriteria-options">Model.count(criteria, options)</a>
-        * <a href="write-operations">Write Operations</a>
-            * <a href="modelinsertentities-options">Model.insert(entities, options)</a>
-            * <a href="modelupdadeentities-options">Model.updade(entities, options)</a>
-            * <a href="modelsaveentities-options">Model.save(entities, options)</a>
-            * <a href="modelremoveentities-options">Model.remove(entities, options)</a>
-        * <a href="queries">Queries</a>
-            * <a href="modelupdatequerycriteria-update-options">Model.updateQuery(criteria, update, options)</a>
-        * <a href="using-the-driver-directly">Using The Driver Directly</a>
-    * <a href="model-hooks">Model Hooks</a>
-    * <a href="relations">Relations</a>
-        * <a href="defining-relations">Defining Relations</a>
-        * <a href="loading-relations">Loading Relations</a>
-        * <a href="eager-load">Eager Load</a>
-            * <a href="deep-eager-load">Deep Eager Load</a>
+* <a href="#missy">Missy</a>
+* <a href="#table-of-contents">Table Of Contents</a>
+* <a href="#glossary">Glossary</a>
+* <a href="#core-classes">Core Classes</a>
+    * <a href="#converter">Converter</a>
+        * <a href="#type-handlers">Type Handlers</a>
+        * <a href="#custom-type-handlers">Custom Type Handlers</a>
+    * <a href="#missyprojection">MissyProjection</a>
+    * <a href="#missycriteria">MissyCriteria</a>
+    * <a href="#missysort">MissySort</a>
+    * <a href="#missyupdate">MissyUpdate</a>
+* <a href="#driver">Driver</a>
+    * <a href="#supported-drivers">Supported Drivers</a>
+* <a href="#schema">Schema</a>
+    * <a href="#schemadriver-settings">Schema(driver, settings)</a>
+    * <a href="#schemadefinename-fields-optionsmodel">Schema.define(name, fields, options):Model</a>
+    * <a href="#schemaregistertypename-typehandlerschema">Schema.registerType(name, TypeHandler):Schema</a>
+    * <a href="#schemaconnectpromise">Schema.connect():promise</a>
+    * <a href="#schemadisconnectpromise">Schema.disconnect():promise</a>
+    * <a href="#schemagetclient">Schema.getClient():*</a>
+* <a href="#model">Model</a>
+    * <a href="#model-definition">Model Definition</a>
+        * <a href="#fields-definition">Fields Definition</a>
+        * <a href="#model-options">Model Options</a>
+    * <a href="#helpers">Helpers</a>
+        * <a href="#modelentityimportentity">Model.entityImport(entity)</a>
+        * <a href="#modelentityexportentity">Model.entityExport(entity)</a>
+    * <a href="#operations">Operations</a>
+        * <a href="#read-operations">Read Operations</a>
+            * <a href="#modelgetpk-fields">Model.get(pk, fields)</a>
+            * <a href="#modelfindonecriteria-fields-sort-options">Model.findOne(criteria, fields, sort, options)</a>
+            * <a href="#modelfindcriteria-fields-sort-options">Model.find(criteria, fields, sort, options)</a>
+            * <a href="#modelcountcriteria-options">Model.count(criteria, options)</a>
+        * <a href="#write-operations">Write Operations</a>
+            * <a href="#modelinsertentities-options">Model.insert(entities, options)</a>
+            * <a href="#modelupdadeentities-options">Model.updade(entities, options)</a>
+            * <a href="#modelsaveentities-options">Model.save(entities, options)</a>
+            * <a href="#modelremoveentities-options">Model.remove(entities, options)</a>
+        * <a href="#queries">Queries</a>
+            * <a href="#modelupdatequerycriteria-update-options">Model.updateQuery(criteria, update, options)</a>
+        * <a href="#using-the-driver-directly">Using The Driver Directly</a>
+    * <a href="#model-hooks">Model Hooks</a>
+    * <a href="#relations">Relations</a>
+        * <a href="#defining-relations">Defining Relations</a>
+        * <a href="#loading-relations">Loading Relations</a>
+        * <a href="#eager-load">Eager Load</a>
+            * <a href="#deep-eager-load">Deep Eager Load</a>
 
 
 
@@ -396,8 +405,49 @@ User.updateQuery({ id: 1 }, { $set: { mtime: new Date(); } }) // update mtime wi
 
 
 
-Drivers
-=======
+Driver
+======
+
+Missy is a database abstraction and has no DB-specific logic, while *Drivers* implement the missing part.
+A Driver is a class that implements the `IMissyDriver` interface (*lib/interfaces.js*).
+
+Each driver is created with a *connecter* function: a function that returns a database client through a promise.
+Missy does not handle it internally so you can specify all the necessary options and tune the client to your taste.
+
+The first thing you start with is instantiating a driver.
+
+```js
+var missy = require('missy');
+
+// For demo, we'll use `MemoryDriver`: it does not require any connecter function at all.
+var memory = new missy.drivers.MemoryDriver();
+```
+
+Note: `MemoryDriver` is built into Missy, but is extremely slow: it's designed for unit-tests and not for production!
+
+At the user level, you don't use the driver directly. However, it has two handy events:
+
+```js
+memory.on('connect', function(){
+    console.log('Driver connected');
+});
+
+memory.on('disconnect', function(){
+    console.log('Driver disconnected');
+});
+```
+
+## Supported Drivers
+
+Missy drivers are pluggable: just require another package, and you'll get a new entry under `missy.drivers`.
+
+| Driver            | Database          | Package name                                                | Github                                            |
+|-------------------|-------------------|-------------------------------------------------------------|---------------------------------------------------|
+| `MemoryDriver`    | in-memory         | [missy](https://npmjs.org/package/missy)                    | built-in                                          |
+| `PostgresDriver`  | PostgreSQL        | [missy-pg](https://npmjs.org/package/missy-pg)              | <https://github.com/kolypto/nodejs-missy-pg>      |
+| `MongodbDriver`   | MongoDB           | [missy-mongodb](https://npmjs.org/package/missy-mongodb)    | <https://github.com/kolypto/nodejs-missy-mongodb> |
+
+Contributions are welcome, provided your driver is covered with unit-tests :)
 
 
 
@@ -407,6 +457,117 @@ Drivers
 Schema
 ======
 
+Source: lib/Schema.js
+
+The instantiated driver is useless on its own: you just pass it to the `Schema` object which is the bridge that connects
+your *Models* with the Driver of your choice.
+
+You're free to use multiple schemas with different drivers: Missy is smart enough to handle them all, *with no limitations*.
+
+Note: a single driver can only be used with a single schema!
+
+```js
+var missy = require('missy');
+
+// Create: Driver, Schema
+var driver = new missy.drivers.MemoryDriver(),
+    schema = new missy.Schema(driver, {});
+
+// Initially, the schema is not connected
+
+schema.connect()
+    .then(function(){
+        console.log('DB connected!');
+    });
+```
+
+
+## Schema(driver, settings)
+
+Constructor. Creates a schema bound to a driver.
+
+* `driver:IMissyDriver`: The driver to work with
+* `settings:Object`: Schema settings. An object:
+
+    * `queryWhenConnected: Boolean`
+
+        Determines how to handle queries on models of a disconnected schema.
+
+        When `false` (default), querying on a disconnected schema throws `MissyDriverError`
+
+        When `true`, the query is delayed until the driver connects.
+
+Initially, the schema is not connected. Use `Schema.connect()` to make the driver connect.
+
+## Schema.define(name, fields, options):Model
+
+Defines a model on the schema. The model uses the driver bound to the schema.
+
+Note: you can freely define models on a schema that is not connected.
+
+* `name:String`: Model name
+* `fields:Object`: Model fields definition
+* `options:Object`: Model options
+
+See: <a href="#model-definition">Model Definition</a>.
+
+```js
+schema.define('User', {
+    id: Number,
+    login: String
+}, { pk: 'id' });
+```
+
+## Schema.registerType(name, TypeHandler):Schema
+
+Register a custom <a href="#type-handlers">Type Handler</a> on this schema. This type becomes available to all models
+defined on the schema.
+
+* `name: String`: The type handler name. Use it in model fields: `{ type: 'name' }`.
+* `TypeHandler:IMissyTypeHandler`: The type handler class to use. Must implement `IMissyTypeHandler`
+
+See: <a href="#custom-type-handlers">Custom Type Handlers</a>
+
+## Schema.connect():promise
+
+Ask the driver to connect to the database.
+
+Returns a promise.
+
+```js
+schema.connect()
+    .then(function(){
+        // DB connected
+    })
+    .catch(function(err){
+        // DB connection error
+    });
+```
+
+Note: once connected, the Schema automatically reconnects when the connection is lost.
+
+## Schema.disconnect():promise
+
+Ask the driver to disconnect from the database.
+
+Returns: a promise
+
+```js
+schema.disconnect()
+    .then(function(){
+        // Disconnected
+    });
+```
+
+Note: this disables automatic reconnects until you explicitly `connect()`.
+
+## Schema.getClient():*
+
+Convenience method to get the vanilla DB client of the underlying driver.
+
+Handy when you need to make some complex query which is not supported by Missy.
+
+See: <a href="#using-the-driver-directly">Using The Driver Directly</a>
 
 
 
@@ -472,4 +633,4 @@ Relations
 
 ### Eager Load
 
-#### Deep Eager Load
+### Deep Eager Load
