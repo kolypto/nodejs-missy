@@ -389,3 +389,67 @@ exports.testModelLoadRelated = function(test){
             test.done();
         }).done();
 };
+
+/** Test Relations with saveRelated()
+ * @param {test|assert} test
+ */
+exports.testModelSaveRelated = function(test){
+    var User = this.User,
+        Profile = this.Profile,
+        Device = this.Device,
+        Message = this.Message,
+        driver = this.driver
+        ;
+
+    // Helpers
+    var shouldNever = common.shouldNeverFunc(test);
+
+    return [
+        // Test: Model.saveRelated
+        function(){
+            return [
+                // hasOne(), single-field
+                function(){
+                    return User
+                        .withRelated('profile')
+                        .save([
+                            { id: 1, profile: { name: 'First', age: 20 } },
+                            { id: 2, profile: { name: 'Second', age: 25 } },
+                            { id: 3, profile: { name: 'Third', age: 30 } },
+                            { id: 4 }
+                        ])
+                        .catch(shouldNever('Test: Model.saveRelated :: hasOne(), single-field'))
+                        .then(function(entities){
+                            test.equal(entities.length, 4);
+
+                            test.equal(driver.getTable(User).length, 4);
+                            test.deepEqual(driver.getTable(User), [
+                                { id: 1 },
+                                { id: 2 },
+                                { id: 3 },
+                                { id: 4 }
+                            ]);
+
+                            test.equal(driver.getTable(Profile).length, 3);
+                            test.deepEqual(driver.getTable(Profile), [
+                                { id: 1, name: 'First', age: 20 },
+                                { id: 2, name: 'Second', age: 25 },
+                                { id: 3, name: 'Third', age: 30 }
+                            ]);
+                        });
+                },
+                // hasOne(), multi-field
+                function(){},
+                // hasMany(), single-field
+                function(){},
+                // hasMany(), multi-field
+                function(){},
+            ].reduce(Q.when, Q());
+        }
+    ].reduce(Q.when, Q())
+        .catch(shouldNever('Test error'))
+        .finally(function(){
+            test.done();
+        })
+        .done();
+};
