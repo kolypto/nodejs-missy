@@ -9,10 +9,9 @@ var Q = require('q'),
 
 Q.longStackSupport = true;
 
-/** Test Relations
- * @param {test|assert} test
+/** Set up the Schema
  */
-exports.testModelRelations = function(test){
+exports.setUp = function(callback){
     var driver = new MemoryDriver(),
         schema = new Schema(driver, {})
         ;
@@ -55,6 +54,56 @@ exports.testModelRelations = function(test){
     Device.hasMany('messages', Message, { 'type':'device_type', 'sn':'device_sn' });
 
     Message.hasOne('device', Device, { 'device_type':'type', 'device_sn':'sn' });
+
+    _.extend(this, {
+        driver: driver,
+        schema: schema,
+        User: User,
+        Profile: Profile,
+        Device: Device,
+        Message: Message
+    });
+
+    callback();
+};
+
+/** Test Relations structure
+ * @param {test|assert} test
+ */
+exports.testStructure = function(test){
+    var User = this.User,
+        Profile = this.Profile,
+        Device = this.Device,
+        Message = this.Message,
+        driver = this.driver
+        ;
+
+    // Structural tests
+    test.deepEqual(Object.keys(User.relations), ['profile', 'devices']);
+    test.deepEqual(Object.keys(Profile.relations), ['user']);
+    test.deepEqual(Object.keys(Device.relations), ['user', 'messages']);
+    test.deepEqual(Object.keys(Message.relations), ['device']);
+
+    test.deepEqual(User.relations.profile.fields, {'id':'id'});
+    test.deepEqual(User.relations.devices.fields, {'id':'uid'});
+    test.deepEqual(Profile.relations.user.fields, {'id':'id'});
+    test.deepEqual(Device.relations.user.fields, {'uid':'id'});
+    test.deepEqual(Device.relations.messages.fields, { 'type':'device_type', 'sn':'device_sn' });
+    test.deepEqual(Message.relations.device.fields, { 'device_type':'type', 'device_sn':'sn' });
+
+    test.done();
+};
+
+/** Test Relations with loadRelated() & co
+ * @param {test|assert} test
+ */
+exports.testModelLoadRelated = function(test){
+    var User = this.User,
+        Profile = this.Profile,
+        Device = this.Device,
+        Message = this.Message,
+        driver = this.driver
+        ;
 
     // Helpers
     var shouldNever = function(title){
