@@ -615,6 +615,7 @@ Operations
 ### Queries
 
 #### Model.updateQuery(criteria, update, options)
+#### Model.removeQuery(criteria, options)
 
 ### Using The Driver Directly
 

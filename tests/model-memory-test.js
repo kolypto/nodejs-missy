@@ -513,6 +513,41 @@ exports.testModel_MemoryDriver = function(test){
                 .catch(shouldNever('updateQuery() upsert=true, multi=true'));
         },
 
+        // removeQuery(), no matching entities
+        function(){
+            return Log.removeQuery({ id: 999 })
+                .then(function(entities){
+                    test.equal(entities.length, 0);
+
+                    test.equal(driver.getTable(Log).length, 4);
+                    testHooks.Log.fired({
+                        beforeRemoveQuery: 1,
+                        beforeImport: 0,
+                        afterImport: 0,
+                        afterRemoveQuery: 1
+                    });
+                })
+                .catch(shouldNever('removeQuery(), no matching entities'));
+        },
+        // removeQuery()
+        function(){
+            return Log.removeQuery({ id: { $gt: 2 } })
+                .then(function(entities){
+                    test.equal(entities.length, 2);
+                    test.deepEqual(entities[0], { id: 3, level: 1, title: 'Third', hits: 2 });
+                    test.deepEqual(entities[1], { id: 4, level: 2, hits: 2, title: 'Fourth' });
+
+                    test.equal(driver.getTable(Log).length, 2);
+                    testHooks.Log.fired({
+                        beforeRemoveQuery: 1,
+                        beforeImport: 2,
+                        afterImport: 2,
+                        afterRemoveQuery: 1
+                    });
+                })
+                .catch(shouldNever('removeQuery(), no matching entities'));
+        },
+
     ].reduce(Q.when, Q(1))
         .catch(shouldNever('Test error'))
         .finally(function(){
