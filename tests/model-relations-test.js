@@ -4,7 +4,8 @@ var Q = require('q'),
     _ = require('lodash'),
     Schema = require('../lib').Schema,
     MemoryDriver = require('../lib').drivers.MemoryDriver,
-    errors = require('../lib/errors')
+    errors = require('../lib/errors'),
+    common = require('./common')
     ;
 
 Q.longStackSupport = true;
@@ -94,7 +95,7 @@ exports.testStructure = function(test){
     test.done();
 };
 
-/** Test Relations with loadRelated() & co
+/** Test Relations with loadRelated()
  * @param {test|assert} test
  */
 exports.testModelLoadRelated = function(test){
@@ -106,13 +107,7 @@ exports.testModelLoadRelated = function(test){
         ;
 
     // Helpers
-    var shouldNever = function(title){
-        return function(e){
-            test.ok(false, 'Should never get here: ' + title, arguments);
-            if (e && e instanceof Error)
-                console.error(e.stack);
-        };
-    };
+    var shouldNever = common.shouldNeverFunc(test);
 
     // Structural tests
     test.deepEqual(Object.keys(User.relations), ['profile', 'devices']);
