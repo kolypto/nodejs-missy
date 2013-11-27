@@ -421,14 +421,16 @@ exports.testModelSaveRelated = function(test){
                         .catch(shouldNever('Test: Model.saveRelated :: hasOne(), single-field'))
                         .then(function(entities){
                             test.equal(entities.length, 4);
-
-                            test.equal(driver.getTable(User).length, 4);
-                            test.deepEqual(driver.getTable(User), [
+                            test.deepEqual(entities, [
+                                // relation field is dropped
                                 { id: 1 },
                                 { id: 2 },
                                 { id: 3 },
                                 { id: 4 }
                             ]);
+
+                            test.equal(driver.getTable(User).length, 4);
+                            test.deepEqual(driver.getTable(User), entities); // relation field is not saved
 
                             test.equal(driver.getTable(Profile).length, 3);
                             test.deepEqual(driver.getTable(Profile), [
@@ -439,13 +441,124 @@ exports.testModelSaveRelated = function(test){
                         });
                 },
                 // hasOne(), multi-field
-                function(){},
+                function(){
+                    process.env.test = 1;
+                    return Message
+                        .withRelated('device')
+                        .save([
+                            { device_type: 'phone', device_sn: 'ABCD', msg_id: 1, body: 'Hello',
+                                device: { uid: 1, title: 'HTC' }
+                            },
+                            { device_type: 'tablet', device_sn: '1234', msg_id: 2, body: 'Hi',
+                                device: { uid: 2, title: 'Samsung' }
+                            },
+                            { device_type: 'phone', device_sn: 'ABCD', msg_id: 3, body: 'How are u?',
+                                device: { uid: 1, title: 'HTC' } // from the same device!
+                            }
+                        ])
+                        .catch(shouldNever('Test: Model.saveRelated :: hasOne(), multi-field'))
+                        .then(function(entities){
+                            test.equal(entities.length, 3);
+                            test.deepEqual(entities, [
+                                // relation field is dropped
+                                { device_type: 'phone', device_sn: 'ABCD', msg_id: 1, body: 'Hello' },
+                                { device_type: 'tablet', device_sn: '1234', msg_id: 2, body: 'Hi' },
+                                { device_type: 'phone', device_sn: 'ABCD', msg_id: 3, body: 'How are u?' }
+                            ]);
+
+                            test.equal(driver.getTable(Message).length, 3);
+                            test.deepEqual(driver.getTable(Message), entities); // relation fields is not saved
+
+                            test.equal(driver.getTable(Device).length, 2);
+                            test.deepEqual(driver.getTable(Device), [
+                                { uid: 1, type: 'phone', sn: 'ABCD', title: 'HTC' },
+                                { uid: 2, type: 'tablet', sn: '1234', title: 'Samsung' }
+                            ]);
+                        });
+                },
                 // hasMany(), single-field
-                function(){},
+                function(){
+                    return User
+                        .withRelated('devices')
+                        .update({
+                            id: 1,
+                            devices: [
+                                { type: 'phone', sn: 'ABCD', title: 'htc' }, // same device, but lowercased
+                                { type: 'phone', sn: 'EFGH', title: 'Sony' } // new device
+                            ]
+                        })
+                        .catch(shouldNever('Test: Model.saveRelated :: hasMany(), single-field'))
+                        .then(function(entity){
+                            test.deepEqual(entity, { id: 1 });
+
+                            test.equal(driver.getTable(Device).length, 3);
+                            test.deepEqual(driver.getTable(Device), [
+                                { uid: 2, type: 'tablet', sn: '1234', title: 'Samsung' },
+                                { uid: 1, type: 'phone', sn: 'ABCD', title: 'htc' }, // replaced
+                                { uid: 1, type: 'phone', sn: 'EFGH', title: 'Sony' } // added
+                            ]);
+                        });
+                },
                 // hasMany(), multi-field
-                function(){},
+                function(){
+                    return Device
+                        .withRelated('messages')
+                        .insert(
+                            { uid: 3, type: 'ipad', sn: 'zyxw', title: 'iPad',
+                                messages: [
+                                    { msg_id: 4, body: 'Hi bro' },
+                                    { msg_id: 5, body: 'Wassup?' },
+                                ]
+                            }
+                        )
+                        .catch(shouldNever('Test: Model.saveRelated :: hasMany(), multi-field'))
+                        .then(function(entity){
+                            test.equal(_.isArray(entity), false);
+                            test.deepEqual(entity, { uid: 3, type: 'ipad', sn: 'zyxw', title: 'iPad' });
+
+                            test.equal(driver.getTable(Device).length, 4);
+                            test.deepEqual(driver.getTable(Device)[3], entity);
+
+                            test.equal(driver.getTable(Message).length, 5);
+                            test.deepEqual(driver.getTable(Message).slice(-2), [
+                                { msg_id: 4, body: 'Hi bro', device_type: 'ipad', device_sn: 'zyxw' },
+                                { msg_id: 5, body: 'Wassup?', device_type: 'ipad', device_sn: 'zyxw' },
+                            ]);
+                        });
+                },
             ].reduce(Q.when, Q());
-        }
+        },
+        // Test: Model.removeRelated
+        function(){
+            return [
+                // hasOne
+                function(){
+                    return User
+                        .withRelated('profile')
+                        .remove({ id: 2 }) // note: we don't have to specify the profile here.
+                        .catch(shouldNever('Test: Model.removeRelated :: hasOne'))
+                        .then(function(entity){
+                            test.deepEqual(entity, { id: 2 });
+
+                            test.equal(driver.getTable(User).length, 3);
+                            test.equal(driver.getTable(Profile).length, 2);
+                        });
+                },
+                // hasMany
+                function(){
+                    return Device
+                        .withRelated('messages')
+                        .remove({ uid: 3, type: 'ipad', sn: 'zyxw', title: 'iPad' })
+                        .catch(shouldNever('Test: Model.removeRelated :: hasMany'))
+                        .then(function(entity){
+                            test.deepEqual(entity, { uid: 3, type: 'ipad', sn: 'zyxw', title: 'iPad' });
+
+                            test.equal(driver.getTable(Device).length, 3);
+                            test.equal(driver.getTable(Message).length, 3);
+                        });
+                }
+            ].reduce(Q.when, Q());
+        },
     ].reduce(Q.when, Q())
         .catch(shouldNever('Test error'))
         .finally(function(){
