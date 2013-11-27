@@ -493,8 +493,8 @@ exports.testModelSaveRelated = function(test){
 
                             test.equal(driver.getTable(Device).length, 3);
                             test.deepEqual(driver.getTable(Device), [
-                                { uid: 2, type: 'tablet', sn: '1234', title: 'Samsung' },
                                 { uid: 1, type: 'phone', sn: 'ABCD', title: 'htc' }, // replaced
+                                { uid: 2, type: 'tablet', sn: '1234', title: 'Samsung' },
                                 { uid: 1, type: 'phone', sn: 'EFGH', title: 'Sony' } // added
                             ]);
                         });
