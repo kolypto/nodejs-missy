@@ -110,12 +110,7 @@ exports.testConverter = function(test){
     testEntityImport({ login: 'kolypto' }, { login: 'kolypto' }); // ok string convertion
 
     var now = new Date();
-    User.entityImport({ ctime: undefined })
-        .then(function(entity){
-            test.equal(entity.ctime.getDay(), now.getDay()); // default
-        }).catch(function(e){
-            test.equal(e, undefined);
-        });
+    testEntityImport({ ctime: undefined }, { ctime: null }); // ok date
 
     testEntityImport({ ctime: 1000 }, { ctime: new Date('Thu Jan 01 1970 02:00:01 GMT+0200 (EET)') }); // converted
     testEntityImport({ ctime: '2012-03-04 15:16:17' }, { ctime: new Date('Sun Mar 04 2012 15:16:17 GMT+0200 (EET)') }); // converted
@@ -150,6 +145,8 @@ exports.testConverter = function(test){
     var testEntityExport = function(entity, expected){
         User.entityExport(entity)
             .then(function(entity){
+                if (_.isUndefined(expected.ctime))
+                    expected.ctime = entity.ctime; // honor the default
                 test.deepEqual(entity, expected);
             })
             .catch(function(err){
@@ -171,7 +168,7 @@ exports.testConverter = function(test){
     testEntityExport({ login: 'kolypto' }, { login: 'kolypto' }); // ok string convertion
 
     var now = new Date();
-    User.entityExport({ ctime: undefined })
+    User.entityExport({ }) // ctime: undefined
         .then(function(entity){
             test.equal(entity.ctime.getDay(), now.getDay()); // default
         }).catch(function(e){
