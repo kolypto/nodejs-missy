@@ -18,7 +18,7 @@ Quick overview:
 * Honors custom fields not defined in the model: useful for schema-less databases like MongoDB
 * MongoDB-style API
 * Reliable DB reconnecting ; delaying query execution until it connects (optional)
-* Promise-based
+* Promise-based: uses the [q](https://npmjs.org/package/q) package
 * Amazingly simple and well-structured
 * Documented and rich on comments
 * 100% tests coverage
@@ -28,9 +28,8 @@ Quick overview:
 Table Of Contents
 =================
 
-* <a href="#missy">Missy</a>
-* <a href="#table-of-contents">Table Of Contents</a>
 * <a href="#glossary">Glossary</a>
+* <a href="#tutorial">Tutorial</a>
 * <a href="#core-classes">Core Classes</a>
     * <a href="#converter">Converter</a>
         * <a href="#type-handlers">Type Handlers</a>
@@ -42,8 +41,8 @@ Table Of Contents
 * <a href="#driver">Driver</a>
     * <a href="#supported-drivers">Supported Drivers</a>
 * <a href="#schema">Schema</a>
-    * <a href="#schemadriver-settings">Schema(driver, settings)</a>
-    * <a href="#schemadefinename-fields-optionsmodel">Schema.define(name, fields, options):Model</a>
+    * <a href="#schemadriver-settings">Schema(driver, settings?)</a>
+    * <a href="#schemadefinename-fields-optionsmodel">Schema.define(name, fields, options?):Model</a>
     * <a href="#schemaregistertypename-typehandlerschema">Schema.registerType(name, TypeHandler):Schema</a>
     * <a href="#schemaconnectpromise">Schema.connect():promise</a>
     * <a href="#schemadisconnectpromise">Schema.disconnect():promise</a>
@@ -53,28 +52,36 @@ Table Of Contents
         * <a href="#fields-definition">Fields Definition</a>
         * <a href="#model-options">Model Options</a>
     * <a href="#helpers">Helpers</a>
-        * <a href="#modelentityimportentity">Model.entityImport(entity)</a>
-        * <a href="#modelentityexportentity">Model.entityExport(entity)</a>
+        * <a href="#modelgetclientobject">Model.getClient():Object</a>
+        * <a href="#modelentityimportentityq">Model.entityImport(entity):Q</a>
+        * <a href="#modelentityexportentityq">Model.entityExport(entity):Q</a>
     * <a href="#operations">Operations</a>
         * <a href="#read-operations">Read Operations</a>
-            * <a href="#modelgetpk-fields">Model.get(pk, fields)</a>
-            * <a href="#modelfindonecriteria-fields-sort-options">Model.findOne(criteria, fields, sort, options)</a>
-            * <a href="#modelfindcriteria-fields-sort-options">Model.find(criteria, fields, sort, options)</a>
-            * <a href="#modelcountcriteria-options">Model.count(criteria, options)</a>
+            * <a href="#modelgetpk-fieldsq">Model.get(pk, fields?):Q</a>
+            * <a href="#modelfindonecriteria-fields-sort-optionsq">Model.findOne(criteria?, fields?, sort?, options?):Q</a>
+            * <a href="#modelfindcriteria-fields-sort-optionsq">Model.find(criteria?, fields?, sort?, options?):Q</a>
+            * <a href="#modelcountcriteria-optionsq">Model.count(criteria?, options?):Q</a>
         * <a href="#write-operations">Write Operations</a>
-            * <a href="#modelinsertentities-options">Model.insert(entities, options)</a>
-            * <a href="#modelupdadeentities-options">Model.updade(entities, options)</a>
-            * <a href="#modelsaveentities-options">Model.save(entities, options)</a>
-            * <a href="#modelremoveentities-options">Model.remove(entities, options)</a>
+            * <a href="#modelinsertentities-optionsq">Model.insert(entities, options?):Q</a>
+            * <a href="#modelupdateentities-optionsq">Model.update(entities, options?):Q</a>
+            * <a href="#modelsaveentities-optionsq">Model.save(entities, options?):Q</a>
+            * <a href="#modelremoveentities-optionsq">Model.remove(entities, options?):Q</a>
         * <a href="#queries">Queries</a>
-            * <a href="#modelupdatequerycriteria-update-options">Model.updateQuery(criteria, update, options)</a>
+            * <a href="#modelupdatequerycriteria-update-optionsq">Model.updateQuery(criteria, update, options?):Q</a>
+            * <a href="#modelremovequerycriteria-optionsq">Model.removeQuery(criteria, options?):Q</a>
         * <a href="#using-the-driver-directly">Using The Driver Directly</a>
     * <a href="#model-hooks">Model Hooks</a>
     * <a href="#relations">Relations</a>
         * <a href="#defining-relations">Defining Relations</a>
-        * <a href="#loading-relations">Loading Relations</a>
-        * <a href="#eager-load">Eager Load</a>
-            * <a href="#deep-eager-load">Deep Eager Load</a>
+            * <a href="#modelhasoneprop-foreign-fields">Model.hasOne(prop, foreign, fields)</a>
+            * <a href="#modelhasmanyprop-foreign-fields">Model.hasMany(prop, foreign, fields)</a>
+        * <a href="#handling-related-entities">Handling Related Entities</a>
+            * <a href="#modelloadrelatedentities-prop-fields-sort-optionsq">Model.loadRelated(entities, prop, fields?, sort?, options?):Q</a>
+            * <a href="#modelsaverelatedentities-prop-optionsq">Model.saveRelated(entities, prop, options?):Q</a>
+            * <a href="#modelremoverelatedentities-prop-optionsq">Model.removeRelated(entities, prop, options?):Q</a>
+            * <a href="#modelwithrelatedprop-model">Model.withRelated(prop, ...):Model</a>
+* <a href="#recipes">Recipes</a>
+    * <a href="#validation">Validation</a>
 
 
 
@@ -100,6 +107,151 @@ Commonly used terms:
     <dt>Relation</dt>
     <dd>A relation is a way of accessing the associated entities</dd>
 </dl>
+
+
+
+
+
+
+Tutorial
+========
+
+Let's peek at how Missy works:
+
+```js
+var missy = require('missy'),
+    MongodbDriver = require('missy-mongodb')
+    ;
+
+// Driver
+var mongoDriver = new MongodbDriver(function(){
+    // Connecter function
+
+}, {
+    // driver options
+    journal: true
+});
+
+// Schema
+var schema = new missy.Schema(mongoDriver, {
+    queryWhenConnected: false // when disconnected, queries will wait for the driver to connect
+});
+
+// Models
+var User = schema.define('User', {
+    // Fields definition
+    _id: Number, // simple form
+    name: { type: 'string', required: true }, // full form
+    ctime: { type: 'date', def: function(){ return new Date(); } }, // with a default value
+    sex: String,
+    age: Number,
+    description: String
+}, {
+    // Model options
+    pk: '_id', // Primary key
+    // table: 'users' // using the default table name: 'users'
+});
+
+var Post = schema.define('Post', {
+    _id: Number,
+    uid: Number, // author
+    title: String,
+    body: String,
+    tags: Array
+}, {
+    pk: 'id',
+    table: 'user_posts', // the default table name would have been 'posts'. Override this.
+    entityPrototype: { // add methods to all entities
+        addTag: function(tag){
+            this.tags.push(tag);
+        }
+    }
+});
+
+var Comment = schema.define('Comment', {
+    _id: Number,
+    post_id: Number,
+    name: String, // arbitrary user name
+    body: String
+});
+
+// Relations
+User.hasMany('posts', Post, { 'id': 'uid' }); // name, model, fields mapping
+Post.hasOne('author', User, { 'uid': 'id' });
+Comment.hasOne('post', Post, { 'post_id': '_id' });
+Post.hasMany('comments', Comment, { '_id': 'post_id' });
+
+// Model hooks
+User.hooks.beforeExport = function(entity){ // adds a synchronous hook
+    // validate sex
+    if (['m','f'].indexOf(entity.sex) === -1)
+        entity.sex = '?';
+};
+
+User.hooks.on('afterInsert', function(entities){ // event hook
+    // When a new user is inserted, detect teenagers
+    if (user.age < 18)
+        console.log('teens here!');
+});
+
+// Connect & action!
+schema.connect()
+    .catch(function(){ // DB error
+        console.error('DB connection failed');
+    })
+
+    // Saving entities
+    .then(function(){
+        return User
+            .withRelated('posts') // save related entities as well
+            .save([
+                { _id: 1, name: 'Lily', sex: 'f', age: 19, // `ctime` gets the default
+                  posts: [ // her posts
+                        { // no `uid` field: it automatically gets a value
+                            _id: 1, title: 'Help me', body: 'I broke my nail!', tags: ['help']
+                        }
+                    ]
+                 },
+                { _id: 2, name: 'Ivy', sex: 'f', age: 21 }, // no posts
+                { _id: 3, name: 'Carrie', sex: 'f', age: '23' } // `age` converted to Number on save
+            ]);
+    })
+
+    // Fetching entities
+    .then(function(){ // promise-based success handler callback
+        // Now the schema is connected and we can use the models
+        return User
+            .withRelated('posts') // eagerly load posts
+            .withRelated('posts.comments') // deep eager load: also load all comments
+            .find(
+                { sex: 'f', age: { $gt: 18, $lt: 25 } }, // find girls aged from 18 to 25
+                { description: 0 }, // exclude the description field from the result set
+                { age: +1 } // sort by `age` ascending
+            ); // the result is passed to the next `then()`
+    })
+
+    // Removing entities
+    .then(function(girls){
+        return User
+            .with('posts') // with posts
+            .remove(girls); // don't repeat this at home
+    })
+
+    // Updating an entity without loading it (!)
+    .then(function(){
+        return User.updateQuery(
+            { sex: 'f', name: 'Lily' }, // match all girls named 'Lily'
+            { $set: { description: 'Cute!' } } // set the `description` field to a compliment
+        ); // the full updated entities are returned
+    })
+
+    // Removing an entity without loading it (!)
+    .then(function(){
+        return User.removeQuery( // remove all matching entities
+            { sex: 'f', name: 'John' } // match all Johns pretending to be a girl
+        ); // the removed entities are returned
+    });
+```
 
 
 
@@ -388,7 +540,7 @@ The following operators are supported:
 | `$set`            | Set the value of a field                                                                         |
 | `$inc`            | Increment the value of a field by the specified amount. To decrement, use negative amounts       |
 | `$unset`          | Remove the field (with some drivers: set it to `null`)                                           |
-| `$setOnInsert`    | Set the value of a field only when a new entity is inserted (see `upsert` with <a href="#modelupdatequerycriteria-update-options">Model.updateQuery</a>)      |
+| `$setOnInsert`    | Set the value of a field only when a new entity is inserted (see `upsert` with [Model.updateQuery](#modelupdatequerycriteria-update-optionsq))      |
 | `$rename`         | Rename a field                                                                                   |
 
 Before querying, `MissyUpdate` uses `Converter` to convert the given field values to the DB types.
@@ -517,7 +669,7 @@ Note: you can freely define models on a schema that is not connected.
 * `fields:Object`: Model fields definition
 * `options:Object?`: Model options
 
-See: <a href="#model-definition">Model Definition</a>.
+See: [Model Definition](#model-definition).
 
 ```js
 schema.define('User', {
@@ -528,13 +680,13 @@ schema.define('User', {
 
 ## Schema.registerType(name, TypeHandler):Schema
 
-Register a custom <a href="#type-handlers">Type Handler</a> on this schema. This type becomes available to all models
+Register a custom [Type Handler](#type-handlers) on this schema. This type becomes available to all models
 defined on the schema.
 
 * `name: String`: The type handler name. Use it in model fields: `{ type: 'name' }`.
 * `TypeHandler:IMissyTypeHandler`: The type handler class to use. Must implement `IMissyTypeHandler`
 
-See: <a href="#custom-type-handlers">Custom Type Handlers</a>
+See: [Custom Type Handlers](#custom-type-handlers)
 
 ## Schema.connect():promise
 
@@ -575,7 +727,7 @@ Convenience method to get the vanilla DB client of the underlying driver.
 
 Handy when you need to make some complex query which is not supported by Missy.
 
-See: <a href="#using-the-driver-directly">Using The Driver Directly</a>
+See: [Using The Driver Directly](#using-the-driver-directly)
 
 
 
@@ -585,8 +737,12 @@ See: <a href="#using-the-driver-directly">Using The Driver Directly</a>
 Model
 =====
 
+Source: [lib/Model.js#Model](lib/Model.js)
+
 A *Model* is the representation of some database namespace: a table, a collection, whatever.
 It defines the rules for a certain type of entity, including its fields and business-logic.
+
+
 
 Model Definition
 ----------------
@@ -619,11 +775,24 @@ As stated in the [type handlers](#type-handlers) section, a field definition can
 * A native JavaScript type (`String`, `Number`, `Date`, `Object`, `Array`)
 * An object with the following fields:
 
-    * `
+    * `type:String`: Field type handler
+    * `required:Boolean?`: Is the field required?
+
+        A required field is handled differently by *type handlers*: it is now allowed to contain `null` and gets some
+        default value determined by the *type handler*.
+
+        Default value: uses `required` from [model options](#model-options).
+
+    * `def:*|function(this:Model)`: The default value to use when the field is `undefined`.
+
+        Can be either a value, or a function that returns a value.
+
+        The default value is used when an entity is being saved to the DB, and the field value is either `undefined`,
+        or `null` and having the `required=true` attribute.
 
 ### Model Options
 
-Source: [*lib/options.js#ModelOptions*](lib/options.js)
+Source: [lib/options.js#ModelOptions](lib/options.js)
 
 * `table:String?`: the database table name to use.
 
@@ -664,39 +833,77 @@ Source: [*lib/options.js#ModelOptions*](lib/options.js)
         });
     ```
 
+
+
 Helpers
 -------
 
-### Model.entityImport(entity)
-### Model.entityExport(entity)
+The following low-level model methods are available in case you need to manually handle
+entities that were fetched or are going to be stored by [using the driver directly](#using-the-driver-directly):
+
+### Model.getClient():Object
+Returns the vanilla DB client from the Schema.
+
+### Model.entityImport(entity):Q
+Process an entity loaded from the DB like Missy does it:
+
+* Invoke model hooks (see: [Model Hooks](#model-hooks))
+* Use `Converter` to apply field types
+* Assign entity prototypes (if configured)
+
+Returns a promise for an entity.
+
+```js
+var Post = schema.define('Post', {
+    id: Number,
+    title: String,
+    tags: Array
+});
+
+Post.entityImport({ id: '1', title: 1111, tags: 'test' })
+    .then(function(entity){
+        console.log(entity); // { id: 1, title: '1111', tags: ['test'] }
+    });
+```
+
+### Model.entityExport(entity):Q
+
+Process an entity loaded from the DB like Missy does it:
+
+* Invoke model hooks (see: [Model Hooks](#model-hooks))
+* Use `Converter` to apply field types
+
+Returns a promise for an entity.
+
+
 
 Operations
 ----------
 
 ### Read Operations
 
-#### Model.get(pk, fields)
+#### Model.get(pk, fields?):Q
 
-#### Model.findOne(criteria, fields, sort, options)
+#### Model.findOne(criteria?, fields?, sort?, options?):Q
 
-#### Model.find(criteria, fields, sort, options)
+#### Model.find(criteria?, fields?, sort?, options?):Q
 
-#### Model.count(criteria, options)
+#### Model.count(criteria?, options?):Q
 
 ### Write Operations
 
-#### Model.insert(entities, options)
+#### Model.insert(entities, options?):Q
 
-#### Model.update(entities, options)
+#### Model.update(entities, options?):Q
 
-#### Model.save(entities, options)
+#### Model.save(entities, options?):Q
 
-#### Model.remove(entities, options)
+#### Model.remove(entities, options?):Q
 
 ### Queries
 
-#### Model.updateQuery(criteria, update, options)
-#### Model.removeQuery(criteria, options)
+#### Model.updateQuery(criteria, update, options?):Q
+#### Model.removeQuery(criteria, options?):Q
 
 ### Using The Driver Directly
 
@@ -711,14 +918,15 @@ Relations
 
 ### Defining Relations
 
-### Loading Related Entities
+#### Model.hasOne(prop, foreign, fields)
+#### Model.hasMany(prop, foreign, fields)
 
-### Saving Related Entities
+### Handling Related Entities
 
-### Removing Related Entities
-
-### WithRelated queries
-
+#### Model.loadRelated(entities, prop, fields?, sort?, options?):Q
+#### Model.saveRelated(entities, prop, options?):Q
+#### Model.removeRelated(entities, prop, options?):Q
+#### Model.withRelated(prop, ...):Model
 
 
 
