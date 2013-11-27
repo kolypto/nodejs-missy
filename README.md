@@ -127,7 +127,6 @@ Converter
 Source: *lib/util/model.js#Converter*
 
 `Converter` transparently transparently converts field values to/from the DB format.
-Each field has its own *type handler* defined by the model fields.
 
 NOTE: `Converter` does not touch fields that are not defined in the model! Keep this in mind when working with
 NoSQL databases as in general documents can contain arbitrary fields.
@@ -139,16 +138,23 @@ var User = schema.define('User', {
     id: Number,
     name: String,
     login: { type: 'string', required: true },
-    tags: Array
+    tags: Array,
+    ctime: { type: 'date', required: true, def: function(){ return new Date(); })
 };
 
 User.save({ id: '1', name: 111, login: 'first', tags:'events' });
 User.findOne({ id: '1' })
 ```
 
-On save, the 'id' field is converted to a number, name and login - to string, tags - to array
+On save, the 'id' field is converted to a number, name and login - to string, tags - to array.
+Also, 'ctime' is set to the current time as no value was not provided.
 
 On find, the query criteria 'id' field is converted to a number, and the resulting entity is converted back.
+
+In general, `Converter` does the following:
+
+* Sets default values on fields that are `undefined` and have `def` field property set to either a value or a function.
+* Applies *type handlers* to entity fields defined in the model.
 
 ### Type Handlers
 
@@ -482,12 +488,12 @@ schema.connect()
 ```
 
 
-## Schema(driver, settings)
+## Schema(driver, settings?)
 
 Constructor. Creates a schema bound to a driver.
 
 * `driver:IMissyDriver`: The driver to work with
-* `settings:Object`: Schema settings. An object:
+* `settings:Object?`: Schema settings. An object:
 
     * `queryWhenConnected: Boolean`
 
@@ -499,7 +505,7 @@ Constructor. Creates a schema bound to a driver.
 
 Initially, the schema is not connected. Use `Schema.connect()` to make the driver connect.
 
-## Schema.define(name, fields, options):Model
+## Schema.define(name, fields, options?):Model
 
 Defines a model on the schema. The model uses the driver bound to the schema.
 
@@ -507,7 +513,7 @@ Note: you can freely define models on a schema that is not connected.
 
 * `name:String`: Model name
 * `fields:Object`: Model fields definition
-* `options:Object`: Model options
+* `options:Object?`: Model options
 
 See: <a href="#model-definition">Model Definition</a>.
 
@@ -573,11 +579,49 @@ See: <a href="#using-the-driver-directly">Using The Driver Directly</a>
 
 
 
+
 Model
 =====
 
+A *Model* is the representation of some database namespace: a table, a collection, whatever.
+It defines the rules for a certain type of entity, including its fields and business-logic.
+
 Model Definition
 ----------------
+To define a `Model` on a `Schema`, you use [`schema.define()`](#schemadefinename-fields-optionsmodel):
+
+```js
+var missy = require('missy');
+
+var driver = new missy.drivers.MemoryDriver(),
+    schema = new missy.Schema(driver, {});
+
+var User = schema.define('User', {
+    id: Number,
+    login: { type: String, required: true }
+}, { pk: 'id' });
+```
+
+`Schema.define` accepts the following arguments:
+
+* `name:String`: Model name.
+* `fields:Object`: Model fields definition
+* `options:Object?`: Model options
+
+    * `table:String?`: the database table name to use.
+
+        Default value: Missy casts the model name to lowercase and adds 's'.
+        For instance, 'User' model will get the default table name of 'users'.
+
+    * `pk:String|Array.<String>?`: the primary key field name, or an array of fields for compound PK.
+
+        Every model in Missy needs to have a primary key.
+
+        Default value: `'id'`
+
+    * `required:Boolean`:
+
+        Default value: `false`
 
 ### Fields Definition
 
@@ -606,7 +650,7 @@ Operations
 
 #### Model.insert(entities, options)
 
-#### Model.updade(entities, options)
+#### Model.update(entities, options)
 
 #### Model.save(entities, options)
 
@@ -630,8 +674,21 @@ Relations
 
 ### Defining Relations
 
-### Loading Relations
+### Loading Related Entities
 
-### Eager Load
+### Saving Related Entities
 
-### Deep Eager Load
+### Removing Related Entities
+
+### WithRelated queries
+
+
+
+
+
+
+Recipes
+=======
+
+Validation
+----------
