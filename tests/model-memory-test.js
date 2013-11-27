@@ -549,3 +549,62 @@ exports.testModel_MemoryDriver = function(test){
             test.done();
         }).done();
 };
+
+
+
+/** Test Model entityPrototype
+ * @param test
+ */
+exports.testModel_entityPrototype = function(test){
+    var driver = new MemoryDriver(),
+        schema = new Schema(driver, {})
+        ;
+
+    schema.connect();
+
+    // Model
+    var Wallet = schema.define('Wallet', {
+        uid: Number,
+        amount: Number,
+        currency: String
+    }, {
+        pk: 'uid',
+        entityPrototype: {
+            toString: function(){
+                return this.amount + ' ' + this.currency;
+            }
+        }
+    });
+
+    // Helpers
+    var shouldNever = common.shouldNeverFunc(test);
+
+    // Test
+    return [
+        // entityImport
+        function(){
+            return Wallet.entityImport({ uid: 1, amount: 100, currency: 'USD' })
+                .then(function(entity){
+                    test.deepEqual(entity, { uid: 1, amount: 100, currency: 'USD' });
+                    test.equal(entity + '', '100 USD');
+                });
+        },
+        // save()
+        function(){
+            return Wallet.save({ uid: 1, amount: 100, currency: 'USD' })
+                .then(function(entity){
+                    test.equal(entity + '', '100 USD');
+                });
+        },
+        // find()
+        function(){
+            return Wallet.findOne(1, function(entity){
+                test.equal(entity + '', '100 USD');
+            });
+        }
+    ].reduce(Q.when, Q(1))
+        .catch(shouldNever('Test error'))
+        .finally(function(){
+            test.done();
+        }).done();
+};
