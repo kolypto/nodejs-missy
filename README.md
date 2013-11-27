@@ -124,7 +124,7 @@ Though most of them are designed after MongoDB, they're applicable to all DB dri
 Converter
 ---------
 
-Source: *lib/util/model.js#Converter*
+Source: [lib/util/model.js#Converter](lib/util/model.js)
 
 `Converter` transparently transparently converts field values to/from the DB format.
 
@@ -208,7 +208,7 @@ Note: built-in types are registered automatically, there's no need to follow thi
 MissyProjection
 ---------------
 
-Source: *lib/util/model.js#MissyProjection*
+Source: [lib/util/model.js#MissyProjection](lib/util/model.js)
 
 When selecting entities from the DB, you may want to fetch a subset of fields. This is what `MissyProjection` does:
 allows you to specify the fields to include or exclude from the resulting entities.
@@ -262,7 +262,7 @@ User.find({}, { id:1, login: 1 }) // only fetch 2 fields: id, login
 MissyCriteria
 -------------
 
-Source: *lib/util/model.js#MissyCriteria*
+Source: [lib/util/model.js#MissyCriteria](lib/util/model.js)
 
 Specifies the search conditions.
 
@@ -319,7 +319,7 @@ User.find({ age: { $gt: 18, $lt: 22 } }) // 18 <= age <= 22
 MissySort
 ---------
 
-Source: *lib/util/model.js#MissySort*
+Source: [lib/util/model.js#MissySort](lib/util/model.js)
 
 Defines the sort order of the result set.
 
@@ -358,7 +358,7 @@ User.find({}, {}, { age: -1 }) // sort by `age` descending
 MissyUpdate
 -----------
 
-Source: *lib/util/model.js#MissyUpdate*
+Source: [lib/util/model.js#MissyUpdate](lib/util/model.js)
 
 Declares the update operations to perform on matching entities.
 
@@ -463,7 +463,7 @@ Contributions are welcome, provided your driver is covered with unit-tests :)
 Schema
 ======
 
-Source: lib/Schema.js
+Source: [lib/Schema.js#Schema](lib/Schema.js)
 
 The instantiated driver is useless on its own: you just pass it to the `Schema` object which is the bridge that connects
 your *Models* with the Driver of your choice.
@@ -502,6 +502,8 @@ Constructor. Creates a schema bound to a driver.
         When `false` (default), querying on a disconnected schema throws `MissyDriverError`
 
         When `true`, the query is delayed until the driver connects.
+
+    Source: [lib/options.js#SchemaSettings](lib/options.js)
 
 Initially, the schema is not connected. Use `Schema.connect()` to make the driver connect.
 
@@ -608,24 +610,59 @@ var User = schema.define('User', {
 * `fields:Object`: Model fields definition
 * `options:Object?`: Model options
 
-    * `table:String?`: the database table name to use.
-
-        Default value: Missy casts the model name to lowercase and adds 's'.
-        For instance, 'User' model will get the default table name of 'users'.
-
-    * `pk:String|Array.<String>?`: the primary key field name, or an array of fields for compound PK.
-
-        Every model in Missy needs to have a primary key.
-
-        Default value: `'id'`
-
-    * `required:Boolean`:
-
-        Default value: `false`
-
 ### Fields Definition
 
+Source: [lib/interfaces.js#IModelFieldDefinition](lib/interfaces.js)
+
+As stated in the [type handlers](#type-handlers) section, a field definition can be:
+
+* A native JavaScript type (`String`, `Number`, `Date`, `Object`, `Array`)
+* An object with the following fields:
+
+    * `
+
 ### Model Options
+
+Source: [*lib/options.js#ModelOptions*](lib/options.js)
+
+* `table:String?`: the database table name to use.
+
+    Default value: Missy casts the model name to lowercase and adds 's'.
+    For instance, 'User' model will get the default table name of 'users'.
+
+* `pk:String|Array.<String>?`: the primary key field name, or an array of fields for compound PK.
+
+    Every model in Missy needs to have a primary key.
+
+    Default value: `'id'`
+
+* `required:Boolean?`: The default value for fields' `required` attribute.
+
+    Default value: `false`
+
+* `entityPrototype: Object?`: The prototype of all entities fetched from the database.
+
+    This is the Missy way of adding custom methods to individual entities:
+
+    ```js
+    var Wallet = schema.define('Wallet', {
+        uid: Number,
+        amount: Number,
+        currency: String
+    }, {
+        pk: 'uid',
+        entityPrototype: {
+            toString: function(){
+                return this.amount + ' ' + this.currency;
+            }
+        }
+    });
+
+    Wallet.findOne(1) // assuming there exists { uid: 1, amount: 100, currency: 'USD' }
+        .then(function(wallet){
+            console.log(wallet + ''); // -> 100 USD
+        });
+    ```
 
 Helpers
 -------
