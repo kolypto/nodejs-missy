@@ -595,6 +595,11 @@ memory.on('disconnect', function(){
 });
 ```
 
+Each driver has (at least) the following properties:
+
+* `client:*`: The DB client
+* `connected:Boolean`: Whether the client is currently connected
+
 ## Supported Drivers
 
 Missy drivers are pluggable: just require another package, and you'll get a new entry under `missy.drivers`.
@@ -658,6 +663,13 @@ Constructor. Creates a schema bound to a driver.
     Source: [lib/options.js#SchemaSettings](lib/options.js)
 
 Initially, the schema is not connected. Use `Schema.connect()` to make the driver connect.
+
+A `Schema` instance has the following properties:
+
+* `driver:IMissyDriver`: The driver the schema is bound to
+* `settings:Object`: Schema settings object
+* `types:Object.<String, IMissyTypeHandler>`: Custom type handlers defined on the schema
+* `models:Object.<String, Model>`: Models defined on the schema
 
 ## Schema.define(name, fields, options?):Model
 
@@ -741,6 +753,14 @@ Source: [lib/Model.js#Model](lib/Model.js)
 
 A *Model* is the representation of some database namespace: a table, a collection, whatever.
 It defines the rules for a certain type of entity, including its fields and business-logic.
+
+Once defined, a model has the following properties:
+
+* `schema:Schema`: The Schema the Model is defined on
+* `name:String`: Model name
+* `fields:Object.<String, IModelFieldDefinition>`: Field definitions
+* `options:Object`: Model options
+* `relations:Object.<String, IMissyRelation>`: Relation handlers
 
 
 
