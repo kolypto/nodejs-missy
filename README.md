@@ -234,7 +234,7 @@ schema.connect()
     .then(function(girls){
         return User
             .with('posts') // with posts
-            .remove(girls); // don't repeat this at home
+            .remove(girls); // don't try this at home
     })
 
     // Updating an entity without loading it (!)

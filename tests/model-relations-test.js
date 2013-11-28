@@ -3,7 +3,7 @@
 var Q = require('q'),
     _ = require('lodash'),
     Schema = require('../lib').Schema,
-    MemoryDriver = require('../lib').drivers.MemoryDriver,
+    MemoryDriver = require('../lib').drivers.memory,
     errors = require('../lib/errors'),
     common = require('./common')
     ;

@@ -3,12 +3,21 @@
 var Q = require('q'),
     _ = require('lodash'),
     Schema = require('../lib').Schema,
-    MemoryDriver = require('../lib').drivers.MemoryDriver,
+    MemoryDriver = require('../lib').drivers.memory,
     errors = require('../lib/errors'),
     common = require('./common')
     ;
 
 Q.longStackSupport = true;
+
+/** Test automatic driver init
+ * @param {test|assert} test
+ */
+exports.testAutoDriver = function(test){
+    var schema = new Schema('memory', {});
+    test.ok(schema.driver instanceof MemoryDriver);
+    test.done();
+};
 
 /** Test driver connections (with queryWhenConnected=false)
  * @param {test|assert} test
