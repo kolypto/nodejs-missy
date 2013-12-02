@@ -17,8 +17,6 @@ exports.setUp = function(callback){
         schema = new Schema(driver, {})
         ;
 
-    schema.connect(); // just ignore the result
-
     // Models
     var User = schema.define('User', {
         id: Number,
@@ -65,7 +63,8 @@ exports.setUp = function(callback){
         Message: Message
     });
 
-    callback();
+    schema.connect()
+        .nodeify(callback);
 };
 
 /** Test Relations structure
