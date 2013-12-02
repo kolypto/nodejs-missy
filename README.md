@@ -793,6 +793,7 @@ Source: [lib/interfaces.js#IModelFieldDefinition](lib/interfaces.js)
 As stated in the [type handlers](#type-handlers) section, a field definition can be:
 
 * A native JavaScript type (`String`, `Number`, `Date`, `Object`, `Array`)
+* A Field *type handler* string name: `'string'`, `'any'`, etc.
 * An object with the following fields:
 
     * `type:String`: Field type handler

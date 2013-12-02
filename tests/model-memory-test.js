@@ -26,7 +26,7 @@ exports.testModel_MemoryDriver = function(test){
         level: { type: 'number', required: true },
         title: String,
         tags: Array,
-        entry: Object
+        entry: 'object' // string type
     }, { pk: ['id'] });
 
     // Hook testing stuff
