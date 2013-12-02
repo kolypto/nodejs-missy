@@ -319,7 +319,7 @@ Missy defines some built-in type handlers in *lib/types/*:
 
 |Name         | Shortcut         | JS Type        | Default           | Comment                                                       |
 |-------------|------------------|----------------|-------------------|---------------------------------------------------------------|
-| any         | -                | *              | undefined         | No-op converter to use the value as is                        |
+| any         | undefined        | *              | undefined         | No-op converter to use the value as is                        |
 | string      | String           | `String,null`  | `'', null`        | Ensure a string, or `null`                                    |
 | number      | Number           | `Number,null`  | `0, null`         | Ensure a number, or `null`                                    |
 | date        | Date             | `Date,null`    | `null`            | Convert to JS `Date`, or `null`                               |
@@ -924,6 +924,13 @@ Operations
 
 #### Model.updateQuery(criteria, update, options?):Q
 #### Model.removeQuery(criteria, options?):Q
+
+### Chaining
+
+#### Model.pick
+#### Model.sort
+#### Model.skip
+#### Model.limit
 
 ### Using The Driver Directly
 
