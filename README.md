@@ -901,42 +901,412 @@ Returns a promise for an entity.
 Operations
 ----------
 
+All examples use the following schema:
+
+```js
+var User = schema.define('User', {
+    id: Number,
+    name: String,
+    age: Number,
+    sex: String
+});
+```
+
+All promise-returning methods can return the following error:
+
+* `MissyDriverError`: driver-specific error
+
+
+
 ### Read Operations
 
 #### Model.get(pk, fields?):Q
 
+Get a single entity by its primary key.
+
+Arguments:
+
+* `pk: *|Array|Object`: The Primary Key value. For compound primary keys, use array or object of values.
+
+    Accepts the following values:
+
+    * `pk: *`: Any scalar primary key value. Only applicable for single-column Primary Keys.
+    * `pk: Array`: An array of PK values. Use with compound Primary Keys.
+    * `pk: Object`: PK values as an object.
+
+* `fields: String|Array|Object|MissyProjection?`: [Fields projection](#missyprojection).
+
+Returns: a promise for an entity, or `null` when the entity is not found.
+
+Errors:
+
+* `MissyModelError`: invalid primary key: empty or incomplete.
+
+```js
+// single-column PK
+var User = schema.define('User', {id: Number }, { pk: 'id' });
+
+User.get(1) // get User(id=1)
+    .then(function(entity){ /*...*/ });
+
+User.get([1], ['id', 'login']) // User(id=1) ; only fetch fields `id`, `login`
+    .then(function(entity){ /*...*/ });
+
+User.get({ id: 1 }, { id: 1, login: 1 }) // User(id=1) ; only fetch fields `id`, `login`
+    .then(function(entity){ /*...*/ });
+
+// multi-column PK
+var Post = schema.define('Post', { uid: Number, id: Number }, { pk: ['uid','id'] });
+
+User.get([1, 15]) // get Post(uid=1,id=15)
+    .then(function(entity){ /* ... */ });
+
+User.get({ uid: 1, id: 15 }, { roles: 0 }) // get Post(uid=1,id=15) ; omit field `roles`
+    .then(function(entity){ /* ... */ });
+
+User.get({ uid: 1 }) // incomplete PK
+    .catch(function(e){ /* e=MissyModelError: incomplete PK */ });
+```
+
+
+
 #### Model.findOne(criteria?, fields?, sort?, options?):Q
+
+Find a single entity matching the specified criteria.
+When multiple entities are found - only the first one is returned.
+
+Arguments:
+
+* `criteria: Object|MissyCriteria?`: [Search criteria](#missycriteria)
+* `fields: String|Object|MissyProjection?`: [Fields projection](#missyprojection)
+* `sort: String|Object|Array|MissySort?`: [Sort specification](#missysort)
+* `options: Object?`: Driver-specific options, if supported.
+
+Returns: a promise for an entity, or `null` when no entity is found.
+
+```js
+User.findOne(
+    { age: { $gt: 18, $lt: 21 }, sex: 'f' }, // criteria
+    { id: 1, name: 1 }, // projection
+    { age: -1 } // sort
+).then(function(user){
+    //...
+});
+```
+
 
 #### Model.find(criteria?, fields?, sort?, options?):Q
 
+Find all entities matching the specified criteria.
+
+Arguments:
+
+* `criteria: Object|MissyCriteria?`: [Search criteria](#missycriteria)
+* `fields: String|Object|MissyProjection?`: [Fields projection](#missyprojection)
+* `sort: String|Object|Array|MissySort?`: [Sort specification](#missysort)
+* `options: Object?`: Driver-specific options, if supported.
+
+    Options supported by all drivers:
+
+    * `skip: Number?`: The number of entities to skip. Default: `0`, no skip
+    * `limit: Number?`: Limit the returned number of entities. Default: `0`, no limit
+
+Returns: a promise for an array or entities.
+
+```js
+User.find(
+    { age: { $gt: 18, $lt: 21 }, sex: 'f' }, // criteria
+    { id: 1, name: 1 }, // projection
+    { age: -1 }, // sort
+    { skip: 0, limit: 10 } // 10 per page, first page
+).then(function(users){
+    //...
+});
+```
+
 #### Model.count(criteria?, options?):Q
+
+Count entities that match the criteria
+
+Arguments:
+
+* `criteria: Object|MissyCriteria?`: [Search criteria](#missycriteria)
+* `options: Object?`: Driver-specific options, if supported.
+
+Returns: a promise for a number.
+
+```js
+User.count({ sex: 'f' })
+    .then(function(girlsCount){ /* ... */ });.
+});
+```
 
 ### Write Operations
 
 #### Model.insert(entities, options?):Q
 
+Insert a new entity (or an array of them).
+
+Arguments:
+
+* `entities: Object|Array.<Object>`: a single entity, or an array of them.
+* `options: Object?`: Driver-specific options, if supported.
+
+Returns: a promise for the inserted entity (or an array of them).
+
+Errors:
+
+* `EntityExists`: the entity already exists
+
+Notes:
+
+* The drivers are required to return entities as saved by the DB, and in the order matching the input.
+* If any entity already exists, the driver throws an exception and stops.
+  Entities that were already inserted are not removed.
+
+```js
+// Insert a single entity
+User.insert({ login: 'Carrie', age: 23})
+    .then(function(entity){
+        entity.id; // was set by the DB
+    })
+    .catch(function(err){
+        if (err instanceof missy.errors.EntityExists){
+            // ...
+        } else throw err; // throw it to the upper chain
+    }).done()
+    ;
+
+// Insert an array of entities
+User.insert([
+    { login: 'Carrie', age: 23},
+    { login: 'Lily', age: 19},
+
+]).then(function(entities){ /* ... */ });
+```
+
 #### Model.update(entities, options?):Q
+
+Update (replace) an existing entity (or an array of them).
+
+Arguments:
+
+* `entities: Object|Array.<Object>`: a single entity, or an array of them.
+* `options: Object?`: Driver-specific options, if supported.
+
+Returns: a promise for the updated entity (or an array of them).
+
+Errors:
+
+* `EntityNotFound`: the entity does not exist
+
+```js
+// Insert a single entity
+User.update({ _id: 1, login: 'Carrie', age: 23})
+    .then(function(entity){ /* ... */ });
+```
 
 #### Model.save(entities, options?):Q
 
+Save an arbitrary entity (or an array of them).
+This inserts the missing entities and updates the existing ones.
+
+Arguments:
+
+* `entities: Object|Array.<Object>`: a single entity, or an array of them.
+* `options: Object?`: Driver-specific options, if supported.
+
+Returns: a promise for the entity (or an array of them).
+
+```js
+User.save({ login: 'Carrie', age: 23})
+    .then(function(entity){
+        entity.id; // was set by the DB
+    })
+```
+
 #### Model.remove(entities, options?):Q
+
+Remove an existing entity (or an array of them) from the database.
+
+Arguments:
+
+* `entities: Object|Array.<Object>`: a single entity, or an array of them.
+* `options: Object?`: Driver-specific options, if supported.
+
+Returns: a promise for the entity (or an array of them).
+
+Errors:
+
+* `EntityNotFound`: the entity does not exist
+
+```js
+User.remove({ _id: 1 }) // PK is enough
+    .then(function(entity){
+        entity; // the full removed entity
+    });
+```
 
 ### Queries
 
 #### Model.updateQuery(criteria, update, options?):Q
+
+Update entities that match a criteria using update operators.
+This tool allows to update entities without actually fetching them.
+DB drivers do this atomically, if possible.
+
+Arguments:
+
+* `criteria: Object|MissyCriteria`: [Search criteria](#missycriteria)
+* `update: Object|MissyUpdate`: [Update operations](#missyupdate)
+* `options: Object?`: Driver-specific options, if supported.
+
+    Options supported by all drivers:
+
+    * `upsert: Boolean?`: Do an *upsert*: when no entity matches the criteria, a new entity is built from the criteria
+      (equality operators converted to values) and update operators applied to it. Default: `false`
+    * `multi: Boolean?`: Allow updating multiple entities. In `multi=true` mode, the method returns an array.
+      Default: `false`
+
+Returns: a promise for a full updated entity or `null` when no matching entity is found.
+When `multi=true`, returns an array of entities.
+
+```js
+// update a single entity
+User.updateQuery({ name: 'Ivy' }, { $inc: { age: 1 } ) // find 'Ivy' and add a year
+    .then(function(user){ // 1 user
+        user; // the full entity, or `null` when none found
+    });
+
+// update multiple entities
+User.updateQuery({ age: { $lt: 18 } }, { banned: true }, { multi: true } ) // find teens and ban them
+    .then(function(users){ // multiple users
+        users; // array of matching users. Empty array when none found
+    });
+
+// upsert an entity
+Users.updateQuery({ name: 'Dolly' }, { age: 22 }, { upsert: true })
+    .then(function(user){ // 1 user
+        user; // { id: 1, name: 'Dolly', age: 22 } - either updated or inserted
+    });
+```
+
 #### Model.removeQuery(criteria, options?):Q
+
+Remove entities that match a criteria.
+This tool allows to remove entities without actually fetching them.
+DB drivers do this atomically, if possible.
+
+Arguments:
+
+* `criteria: Object|MissyCriteria`: [Search criteria](#missycriteria)
+* `options: Object?`: Driver-specific options, if supported.
+
+    Options supported by all drivers:
+
+    * `multi: Boolean?`: Allow removing multiple entities. In `multi=true` mode, the method returns an array.
+      Default: `true`
+
+Returns: a promise for a removed entity or `null` when no matching entity is found.
+When `multi=true`, returns an array of entities.
+
+```js
+// remove a single entity
+User.removeQuery({ id: 1 }, { multi: false })
+    .then(function(user){
+        user; // the removed user or `null` when none found
+    });
+
+// remove multiple entities
+User.removeQuery({ age: { $lt: 18 } }) // remove teens
+    .then(function(users){ // multiple users
+        users; // array of removed users. Empty array when none found
+    });
+```
 
 ### Chaining
 
-#### Model.pick
-#### Model.sort
-#### Model.skip
-#### Model.limit
+Some Missy methods support chaining: the specified arguments are stashed for the future and used by the target method.
+
+Currently, the following methods are supported: `Model.get()`, `Model.findOne()`, `Model.find()`.
+
+#### Model.pick(fields)
+Stash the `fields` argument for the next query.
+
+```js
+User.pick({ id: 1, name: 1}).find();
+```
+
+#### Model.sort(sort)
+Stash the `sort` argument for the next query.
+
+```js
+User.sort({ id: -1 }).find();
+```
+
+#### Model.skip(n)
+Stash the `skip` option for the next query.
+
+```js
+User.skip(10).find();
+```
+
+#### Model.limit(n)
+Stash the `limit` option for the next query.
+
+```js
+User.limit(10).find();
+```
 
 ### Using The Driver Directly
 
-Missy search criteria is limited in order to keep the implementation simple. In order to make complex queries, you'll
-need to use the Driver directly. You still can use Missy in this case.
+Missy [search criteria](#missycriteria) is limited in order to keep the implementation simple.
+To make complex queries, you'll need to use the Driver directly, and optionally pass the returned entities through Missy.
+
+In order to mimic Missy behavior, you need to do the following:
+
+1. Get the vanilla DB client object from the Schema or Model.
+2. Execute a query using the client
+3. Use Missy methods to preprocess the data. This includes the hooks!
+
+MongoDB Example:
+
+```js
+var Q = require('q');
+
+var client = User.getClient(); // get the vanilla DB client
+
+// Load an entity
+Q.nmcall(
+    client.collection(User.options.table),
+    'findOne', // method, wrapped in a promise
+    {
+        $or: [
+            // find any root user
+            { role: 'root' },
+            { id: 0 }
+        ]
+    }
+    ).then(function(entity){
+        return User.entityImport(entity); // process the loaded value with Missy
+    })
+    .then(function(entity){
+        entity; // converted from DB format!
+    });
+
+// Save an entity
+var entity = { id: '0', age: '23' }; // wrong field types!
+
+User.entityExport(entity)
+    .then(function(entity){
+        entity; // { id: 0, age: 23 } - converted!
+        return Q.nmcall(
+            client.collection(User.options.table),
+            'save',
+            entity
+        );
+    });
+```
 
 Model Hooks
 -----------
