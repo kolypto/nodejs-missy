@@ -866,13 +866,13 @@ entities that were fetched or are going to be stored by [using the driver direct
 Returns the vanilla DB client from the Schema.
 
 ### Model.entityImport(entity):Q
-Process an entity loaded from the DB like Missy does it:
+Process an entity (or an array of them) loaded from the DB, just like Missy does it:
 
 * Invoke model hooks (see: [Model Hooks](#model-hooks))
 * Use `Converter` to apply field types
 * Assign entity prototypes (if configured)
 
-Returns a promise for an entity.
+Returns a promise for an entity (or an array of them).
 
 ```js
 var Post = schema.define('Post', {
@@ -889,12 +889,12 @@ Post.entityImport({ id: '1', title: 1111, tags: 'test' })
 
 ### Model.entityExport(entity):Q
 
-Process an entity loaded from the DB like Missy does it:
+Process an entity (or an array of them) before saving it to the DB, just like Missy does it:
 
 * Invoke model hooks (see: [Model Hooks](#model-hooks))
 * Use `Converter` to apply field types
 
-Returns a promise for an entity.
+Returns a promise for an entity (or an array of them).
 
 
 
