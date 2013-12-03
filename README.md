@@ -69,8 +69,15 @@ Table Of Contents
         * <a href="#queries">Queries</a>
             * <a href="#modelupdatequerycriteria-update-optionsq">Model.updateQuery(criteria, update, options?):Q</a>
             * <a href="#modelremovequerycriteria-optionsq">Model.removeQuery(criteria, options?):Q</a>
+        * <a href="#chaining">Chaining</a>
+            * <a href="#modelpickfields">Model.pick(fields)</a>
+            * <a href="#modelsortsort">Model.sort(sort)</a>
+            * <a href="#modelskipn">Model.skip(n)</a>
+            * <a href="#modellimitn">Model.limit(n)</a>
         * <a href="#using-the-driver-directly">Using The Driver Directly</a>
     * <a href="#model-hooks">Model Hooks</a>
+        * <a href="#converter-hooks">Converter Hooks</a>
+        * <a href="#query-hooks">Query Hooks</a>
     * <a href="#relations">Relations</a>
         * <a href="#defining-relations">Defining Relations</a>
             * <a href="#modelhasoneprop-foreign-fields">Model.hasOne(prop, foreign, fields)</a>
@@ -1230,6 +1237,8 @@ Some Missy methods support chaining: the specified arguments are stashed for the
 
 Currently, the following methods are supported: `Model.get()`, `Model.findOne()`, `Model.find()`.
 
+
+
 #### Model.pick(fields)
 Stash the `fields` argument for the next query.
 
@@ -1257,6 +1266,8 @@ Stash the `limit` option for the next query.
 ```js
 User.limit(10).find();
 ```
+
+
 
 ### Using The Driver Directly
 
@@ -1308,8 +1319,103 @@ User.entityExport(entity)
     });
 ```
 
+
+
+
+
+
 Model Hooks
 -----------
+
+Missy Models allow you to hook into the internal processes, which allow you to preprocess the data, tune the
+internal behavior, or just tap the data.
+
+Hooks are implemented with [`MissyHooks`](lib/util/hooks.js) which is instantiated under the `Model.hooks` property of
+every mode. It supports both synchronous hooks and event hooks.
+
+You can assign synchronous hooks which are executed within the Missy and can interfere with the process:
+
+```js
+// Add a hook
+User.hooks.beforeInsert = function(entities, ctx){
+    _.each(entities, function(entity){
+        entity.ctime = new Date(); // set the creation date
+    });
+};
+```
+
+Also, you can subscribe to events named after the available hooks:
+
+```js
+User.hooks.on('afterInsert', function(entities, ctx){
+    _.each(entities, function(entity){
+        console.log('New user created: ', entity);
+    });
+});
+```
+
+Almost every Missy method is integrated with the hook system.
+
+### Converter Hooks
+Allow you to hook into `entityImport()` and `entityExport()` functions and alter the way entities are preprocessed
+while Missy talks to database driver.
+
+| Hook name         | Arguments                | Called in                                                             | Usage example               |
+|-------------------|--------------------------|-----------------------------------------------------------------------|-----------------------------|
+| `beforeImport`    | `entity:Object`          | In `entityImport()` right after fetching the entity from the DB. | Prepare values fetched from the DB |
+| `afterImport`     | `entity:Object`          | In `entityImport()` after the field type convertions are applied to the entity. | Final tuning before the entity is returned to the user |
+| `beforeExport`    | `entity:Object`          | In `entityExport()` right after the entity is provided by the Missy user | Sanitize the data |
+| `afterExport`     | `entity:Object`          | In `entityExport()` after the field type convertions are applied to the entity. | Prepare the data before storing it to the DB ; Validation |
+
+```js
+User.afterExport = function(entity){
+    delete entity.password; // never expose the password
+};
+```
+
+### Query Hooks
+Allow you to hook into Missy query methods and alter the way these are executed, including all the input/output values.
+
+All hooks receive the [`ctx: IModelContext`](lib/interfaces.js) argument: an object that holds the current query context.
+In hooks, you can modify its fields to alter the Missy behavior. `ctx` fields set depends on the query, but in general:
+
+* `ctx.model: Model`: The model the query is executed on
+* `ctx.criteria: MissyCriteria?`: Search criteria
+* `ctx.fields: MissyProjection?`: Fields projection
+* `ctx.sort: MissySort?`: Sorting
+* `ctx.update: MissyUpdate?`: Update operations
+* `ctx.options: Object?`: Driver-dependent options
+* `ctx.entities: Array.<Object>?`: The entities being handled (fetched or returned)
+
+Each missy method invokes its own pair of `before*` and `after*` hooks.
+The `after*` hook is not invoked when an error occurs.
+
+In addition, methods that accept/return entities invoke `entityImport()` and `entityExport()` on every entity,
+which in turn triggers the [converter hooks](#converter-hooks) described above.
+
+| Hook name           | Arguments                                       | Model method      |
+|---------------------|-------------------------------------------------|-------------------|
+| `beforeFindOne`     | `entity:undefined, ctx: IModelContext`          | `findOne()`       |
+| `afterFindOne`      | `entity:Object, ctx: IModelContext`             | `findOne()`       |
+| `beforeFind`        | `entities:undefined, ctx: IModelContext`        | `find()`          |
+| `afterFind`         | `entities:Array.<Object>, ctx: IModelContext`   | `find()`          |
+| `beforeInsert`      | `entities:Array.<Object>, ctx: IModelContext`   | `insert()`        |
+| `afterInsert`       | `entities:Array.<Object>, ctx: IModelContext`   | `insert()`        |
+| `beforeUpdate`      | `entities:Array.<Object>, ctx: IModelContext`   | `update()`        |
+| `afterUpdate`       | `entities:Array.<Object>, ctx: IModelContext`   | `update()`        |
+| `beforeSave`        | `entities:Array.<Object>, ctx: IModelContext`   | `save()`          |
+| `afterSave`         | `entities:Array.<Object>, ctx: IModelContext`   | `save()`          |
+| `beforeRemove`      | `entities:Array.<Object>, ctx: IModelContext`   | `remove()`        |
+| `afterRemove`       | `entities:Array.<Object>, ctx: IModelContext`   | `remove()`        |
+| `beforeUpdateQuery` | `entities:undefined, ctx: IModelContext`        | `updateQuery()`   |
+| `afterUpdateQuery`  | `entities:Array.<Object>, ctx: IModelContext`   | `updateQuery()`   |
+| `beforeRemoveQuery` | `entities:undefined, ctx: IModelContext`        | `removeQuery()`   |
+| `afterRemoveQuery`  | `entities:Array.<Object>, ctx: IModelContext`   | `removeQuery()`   |
+
+
+
+
+
 
 Relations
 ---------
