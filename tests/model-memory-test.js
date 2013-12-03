@@ -304,7 +304,7 @@ exports.testModel_MemoryDriver = function(test){
         function(){
             return Log.get({id:100})
                 .then(function(entity){
-                    test.equal(entity, null);
+                    test.strictEqual(entity, null);
                     testHooks.Log.fired({
                         beforeFindOne:1,
                         // no loading: null

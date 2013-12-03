@@ -172,7 +172,7 @@ exports.testConverter = function(test){
         .then(function(entity){
             test.equal(entity.ctime.getDay(), now.getDay()); // default
         }).catch(function(e){
-            test.equal(e, undefined);
+            test.strictEqual(e, undefined);
         });
     testEntityExport({ ctime: now }, { ctime: now }); // ok
     testEntityExport({ ctime: 1000 }, { ctime: new Date('Thu Jan 01 1970 02:00:01 GMT+0200 (EET)') }); // converted

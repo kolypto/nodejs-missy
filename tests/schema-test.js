@@ -77,7 +77,7 @@ exports.testDriverConnections = function(test){
         },
         // Schema is reconnected
         function(){
-            test.equal(schema.driver.connected, true);
+            test.strictEqual(schema.driver.connected, true);
             test.deepEqual(firedEvents, { connect: 2, disconnect: 1 });
 
             return User.find()
@@ -92,7 +92,7 @@ exports.testDriverConnections = function(test){
         },
         // Schema is disconnected again
         function(){
-            test.equal(schema.driver.connected, false);
+            test.strictEqual(schema.driver.connected, false);
             test.deepEqual(firedEvents, { connect: 2, disconnect: 2 });
         }
     ].reduce(Q.when, Q())
@@ -133,7 +133,7 @@ exports.testDriverConnections_queryWhenConnected = function(test){
         },
         // Query is not executed _NOW_
         function(){
-            test.equal(queryMade, false);
+            test.strictEqual(queryMade, false);
         },
         // Let's connect
         function(){
@@ -143,7 +143,7 @@ exports.testDriverConnections_queryWhenConnected = function(test){
         function(){
             return Q().delay(100)
                 .then(function(){
-                    test.equal(queryMade, true);
+                    test.strictEqual(queryMade, true);
                 });
         }
     ].reduce(Q.when, Q())
