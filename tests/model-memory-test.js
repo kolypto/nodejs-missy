@@ -238,8 +238,6 @@ exports.testModel_MemoryDriver = function(test){
                     test.deepEqual(entity, { id: 4, level: 2, title: 'fourth' }); // full entity returned
                     test.deepEqual(driver.getTable(Log).length, 3);
                     testHooks.Log.fired({
-                        beforeExport:1,
-                        afterExport:1,
                         beforeRemove:1,
                         beforeImport:1,
                         afterImport:1,
@@ -255,8 +253,6 @@ exports.testModel_MemoryDriver = function(test){
                     test.equal(driver.getTable(Log).length, 3); // length not changed
                     test.ok(e instanceof errors.EntityNotFound); // error ok
                     testHooks.Log.fired({
-                        beforeExport:1,
-                        afterExport:1,
                         beforeRemove:1
                         // no more hooks due to error
                     });
