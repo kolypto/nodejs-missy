@@ -11,7 +11,7 @@ var Q = require('q'),
  */
 
 /** Common tests for drivers
- * @param test
+ * @param {test|assert} test
  * @param {Schema} schema
  * @returns {{ User: Model, tests: Object.<String, function():Q> }}
  */
@@ -20,7 +20,8 @@ exports.commonDriverTest = function(test, schema){
     var User = schema.define('User', {
         _id: Number,
         login: String,
-        roles: Array
+        roles: Array,
+        age: Number
     }, { pk: '_id', table: '__test_users' });
 
     var shouldNever = u.shouldNeverFunc(test);
@@ -62,9 +63,9 @@ exports.commonDriverTest = function(test, schema){
         },
         // update(), existing
         'update(), existing': function(){
-            return User.update({ _id:3, login: 'd', roles: ['guest'], extra: 111 })
+            return User.update({ _id:3, login: 'd', roles: ['guest'] })
                 .then(function(entity){
-                    test.deepEqual(entity, { _id:3, login: 'd', roles: ['guest'], extra: 111 });
+                    test.deepEqual(entity, { _id:3, login: 'd', roles: ['guest'] });
                 });
         },
         // update(), missing
@@ -79,7 +80,7 @@ exports.commonDriverTest = function(test, schema){
         'findOne(), existing': function(){
             return User.findOne({ login: 'd' }, { roles: 0 })
                 .then(function(entity){
-                    test.deepEqual(entity, { _id:3, login: 'd', extra: 111 });
+                    test.deepEqual(entity, { _id:3, login: 'd' });
                 });
         },
         // findOne(), missing
@@ -94,7 +95,7 @@ exports.commonDriverTest = function(test, schema){
             return User.find({ _id: { $gte: 2 } }, { roles: 0 }, { _id: -1 })
                 .then(function(entities){
                     test.equal(entities.length, 2);
-                    test.deepEqual(entities[0], { _id: 3, login: 'd', extra: 111 });
+                    test.deepEqual(entities[0], { _id: 3, login: 'd' });
                     test.deepEqual(entities[1], { _id: 2, login: 'b' });
                 });
         },
@@ -104,7 +105,7 @@ exports.commonDriverTest = function(test, schema){
                 .then(function(entities){
                     test.equal(entities.length, 2);
                     test.deepEqual(entities[0], { _id: 2, login: 'b' });
-                    test.deepEqual(entities[1], { _id: 3, login: 'd', extra: 111 });
+                    test.deepEqual(entities[1], { _id: 3, login: 'd' });
                 });
         },
         // count()
@@ -126,7 +127,7 @@ exports.commonDriverTest = function(test, schema){
         'remove(), existing': function(){
             return User.remove({ _id: '3' })
                 .then(function(entity){
-                    test.deepEqual(entity, { _id: 3, login: 'd', roles: ['guest'], extra: 111 });
+                    test.deepEqual(entity, { _id: 3, login: 'd', roles: ['guest'] });
                 });
         },
         // updateQuery(): upsert=false, multi=true, existing

@@ -614,7 +614,7 @@ Missy drivers are pluggable: just require another package, and you'll get a new 
 | Driver            | Database          | Package name                                                | Github                                            |
 |-------------------|-------------------|-------------------------------------------------------------|---------------------------------------------------|
 | `MemoryDriver`    | in-memory         | [missy](https://npmjs.org/package/missy)                    | built-in                                          |
-| `PostgresDriver`  | PostgreSQL        | [missy-pg](https://npmjs.org/package/missy-pg)              | <https://github.com/kolypto/nodejs-missy-pg>      |
+| `PostgresDriver`  | PostgreSQL        | [missy-postgres](https://npmjs.org/package/missy-postgres)  | <https://github.com/kolypto/nodejs-missy-postgres>|
 | `MongodbDriver`   | MongoDB           | [missy-mongodb](https://npmjs.org/package/missy-mongodb)    | <https://github.com/kolypto/nodejs-missy-mongodb> |
 
 Contributions are welcome, provided your driver is covered with unit-tests :)
