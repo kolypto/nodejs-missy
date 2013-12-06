@@ -201,6 +201,69 @@ exports.testConverter = function(test){
 };
 
 
+/** Test {util.model.Converter} default values handling
+ * @param {test|assert} test
+ */
+exports.testConverterDefaults = function(test){
+    var schema = new Schema('memory'),
+        Model = schema.define('Model', {
+            stro:   { type: 'string',   required: false,    def: 'abc' },
+            str:    { type: 'string',   required: true,     def: 'abc' },
+            numo:   { type: 'number',   required: false,    def: 123 },
+            num:    { type: 'number',   required: true,     def: 123 },
+            anyo:   { type: 'any',      required: false,    def: '!!!' },
+            any:    { type: 'any',      required: true,     def: '!!!' },
+
+            s: String,
+            n: Number,
+            a: 'any'
+        }, { pk: 'num' });
+
+    schema.connect(); // just
+
+    var testEntityExport = function(entity, expected){
+        Model.entityExport(entity)
+            .then(function(entity){
+                test.deepEqual(entity, expected);
+            })
+            .catch(function(e){
+                test.ok(false, e.stack);
+            }).done();
+    };
+
+    // Should feed defaults for all `undefined`
+    testEntityExport({}, {
+        stro: 'abc', str: 'abc',
+        numo: 123, num: 123,
+        anyo: '!!!', any: '!!!'
+    });
+
+    // Should feed defaults for all `undefined`
+    testEntityExport({
+        stro: undefined, str: undefined, s: undefined,
+        numo: undefined, num: undefined, n: undefined,
+        anyo: undefined, any: undefined, a: undefined
+    }, {
+        stro: 'abc', str: 'abc', s: null,
+        numo: 123, num: 123, n: null,
+        anyo: '!!!', any: '!!!', a: undefined
+    });
+
+    // Should feed defaults for all `null` and required
+    testEntityExport({
+        stro: null, str: null, s: null,
+        numo: null, num: null, n: null,
+        anyo: null, any: null, a: null
+    }, {
+        stro: null, str: 'abc', s: null,
+        numo: null, num: 123, n: null,
+        anyo: null, any: '!!!', a: null
+    });
+
+    test.done();
+};
+
+
 
 /** Test MissyProjection
  * @param {test|assert} test
