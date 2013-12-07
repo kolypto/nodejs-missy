@@ -50,6 +50,7 @@ exports.commonDriverTest = function(test, schema){
         // save(): insert
         'save(): insert': function(){
             return User.save({ _id:3, login: 'd', roles: ['guest'] })
+                .catch(shouldNever('save(): insert'))
                 .then(function(entity){
                     test.deepEqual(entity, { _id:3, login: 'd', roles: ['guest'] });
                 });
@@ -57,6 +58,7 @@ exports.commonDriverTest = function(test, schema){
         // save(): replace
         'save(): replace': function(){
             return User.save({ _id:3, login: 'd', roles: ['guest', 'registered'] })
+                .catch(shouldNever('save(): replace'))
                 .then(function(entity){
                     test.deepEqual(entity, { _id:3, login: 'd', roles: ['guest', 'registered'] });
                 });
@@ -64,6 +66,7 @@ exports.commonDriverTest = function(test, schema){
         // update(), existing
         'update(), existing': function(){
             return User.update({ _id:3, login: 'd', roles: ['guest'] })
+                .catch(shouldNever('update(), existing'))
                 .then(function(entity){
                     test.deepEqual(entity, { _id:3, login: 'd', roles: ['guest'] });
                 });
@@ -79,6 +82,7 @@ exports.commonDriverTest = function(test, schema){
         // findOne(), existing
         'findOne(), existing': function(){
             return User.findOne({ login: 'd' }, { roles: 0 })
+                .catch(shouldNever('findOne(), existing'))
                 .then(function(entity){
                     test.deepEqual(entity, { _id:3, login: 'd' });
                 });
@@ -86,6 +90,7 @@ exports.commonDriverTest = function(test, schema){
         // findOne(), missing
         'findOne(), missing': function(){
             return User.findOne({ login: '!!!' })
+                .catch(shouldNever('findOne(), missing'))
                 .then(function(entity){
                     test.strictEqual(entity, null);
                 });
@@ -93,6 +98,7 @@ exports.commonDriverTest = function(test, schema){
         // find(): projection, sort
         'find(): projection, sort': function(){
             return User.find({ _id: { $gte: 2 } }, { roles: 0 }, { _id: -1 })
+                .catch(shouldNever('find(): projection, sort'))
                 .then(function(entities){
                     test.equal(entities.length, 2);
                     test.deepEqual(entities[0], { _id: 3, login: 'd' });
@@ -102,6 +108,7 @@ exports.commonDriverTest = function(test, schema){
         // find(): skip, limit
         'find(): skip, limit': function(){
             return User.skip(1).limit(2).find({}, { roles: 0 }, { _id: 1 })
+                .catch(shouldNever('find(): skip, limit'))
                 .then(function(entities){
                     test.equal(entities.length, 2);
                     test.deepEqual(entities[0], { _id: 2, login: 'b' });
@@ -111,6 +118,7 @@ exports.commonDriverTest = function(test, schema){
         // count()
         'count()': function(){
             return User.count({ _id: { $gte: 2 } })
+                .catch(shouldNever('count()'))
                 .then(function(n){
                     test.equal(n, 2);
                 })
@@ -126,6 +134,7 @@ exports.commonDriverTest = function(test, schema){
         // remove(), existing
         'remove(), existing': function(){
             return User.remove({ _id: '3' })
+                .catch(shouldNever('remove(), existing'))
                 .then(function(entity){
                     test.deepEqual(entity, { _id: 3, login: 'd', roles: ['guest'] });
                 });
@@ -133,6 +142,7 @@ exports.commonDriverTest = function(test, schema){
         // updateQuery(): upsert=false, multi=true, existing
         'updateQuery(): upsert=false, multi=true, existing': function(){
             return User.updateQuery({ _id: { $gte: 0 } }, { $inc: { age: 10 } }, { /* upsert: false */ multi: true })
+                .catch(shouldNever('updateQuery(): upsert=false, multi=true, existing'))
                 .then(function(entities){
                     test.ok(_.isArray(entities));
                     test.equal(entities.length, 2);
@@ -143,6 +153,7 @@ exports.commonDriverTest = function(test, schema){
         // updateQuery(): upsert=false, multi=false, existing
         'updateQuery(): upsert=false, multi=false, existing': function(){
             return User.updateQuery({ _id: { $gte: 0 } }, { $inc: { age: 1 } }, { /* upsert: false */ /* multi: false */ })
+                .catch(shouldNever('updateQuery(): upsert=false, multi=false, existing'))
                 .then(function(entity){
                     test.ok(!_.isArray(entity));
                     test.deepEqual(entity, { _id: 1, login: 'a', roles: ['admin', 'user'], age: 11 });
@@ -151,6 +162,7 @@ exports.commonDriverTest = function(test, schema){
         // updateQuery(): upsert=false, multi=false, missing
         'updateQuery(): upsert=false, multi=false, missing': function(){
             return User.updateQuery({ _id: '!!!' }, { $inc: { age: 1 } }, { /* upsert: false */ /* multi: false */ })
+                .catch(shouldNever('updateQuery(): upsert=false, multi=false, missing'))
                 .then(function(entity){
                     test.ok(!_.isArray(entity));
                     test.strictEqual(entity, null);
@@ -159,6 +171,7 @@ exports.commonDriverTest = function(test, schema){
         // updateQuery(): upsert=true, existing
         'updateQuery(): upsert=true, existing': function(){
             return User.updateQuery({ _id: 2 }, { $inc: { age: 2 } }, { upsert: true /* multi: false */ })
+                .catch(shouldNever('updateQuery(): upsert=true, existing'))
                 .then(function(entity){
                     test.deepEqual(entity, { _id: 2, login: 'b', roles: ['user'], age: 12 });
                 });
@@ -166,6 +179,7 @@ exports.commonDriverTest = function(test, schema){
         // updateQuery(): upsert=true, missing
         'updateQuery(): upsert=true, missing': function(){
             return User.updateQuery({ _id: 3 }, { login: 'c', $inc: { age: 2 } }, { upsert: true /* multi: false */ })
+                .catch(shouldNever('updateQuery(): upsert=true, missing'))
                 .then(function(entity){
                     test.deepEqual(entity, { _id: 3, login: 'c', age: 2 });
                 });
@@ -173,6 +187,7 @@ exports.commonDriverTest = function(test, schema){
         // removeQuery(): multi=false, existing
         'removeQuery(): multi=false, existing': function(){
             return User.removeQuery({ login: 'c' }, { multi: false })
+                .catch(shouldNever('removeQuery(): multi=false, existing'))
                 .then(function(entity){
                     test.deepEqual(entity, { _id: 3, login: 'c', age: 2 });
                 });
@@ -180,6 +195,7 @@ exports.commonDriverTest = function(test, schema){
         // removeQuery(): multi=false, missing
         'removeQuery(): multi=false, missing': function(){
             return User.removeQuery({ login: 'c' }, { multi: false })
+                .catch(shouldNever('removeQuery(): multi=false, missing'))
                 .then(function(entity){
                     test.strictEqual(entity, null);
                 });
@@ -187,6 +203,7 @@ exports.commonDriverTest = function(test, schema){
         // removeQuery(), multi=true
         'removeQuery(): multi=true': function(){
             return User.removeQuery({ login: { $in: ['a', 'b'] } }, { /* multi: true */ })
+                .catch(shouldNever('removeQuery(): multi=true'))
                 .then(function(entities){
                     test.ok(_.isArray(entities));
                     test.equal(entities.length, 2);
@@ -197,6 +214,7 @@ exports.commonDriverTest = function(test, schema){
         // Final consistency test
         'Final consistency test': function(){
             return User.count()
+                .catch(shouldNever('Final consistency test'))
                 .then(function(n){
                     test.equal(n, 0);
                 });
