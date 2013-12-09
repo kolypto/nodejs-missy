@@ -120,7 +120,7 @@ exports.commonDriverTest = function(test, schema){
             return User.count({ _id: { $gte: 2 } })
                 .catch(shouldNever('count()'))
                 .then(function(n){
-                    test.equal(n, 2);
+                    test.strictEqual(n, 2);
                 })
         },
         // remove(), missing

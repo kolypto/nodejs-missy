@@ -11,7 +11,7 @@ var shouldNeverFunc = exports.shouldNeverFunc = function(test){
     return function(title){
         return function(e){
             test.ok(false, 'Should never get here: ' + title, _.map(arguments, function(arg){
-                return (arg instanceof Error)? arg.stack : arg
+                return (arg instanceof Error)? arg.stack : arg;
             }));
         };
     };
