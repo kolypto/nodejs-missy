@@ -1420,18 +1420,183 @@ which in turn triggers the [converter hooks](#converter-hooks) described above.
 Relations
 ---------
 
+Missy supports automatic loading & saving of related entities assigned to the host entities.
+
 ### Defining Relations
 
 #### Model.hasOne(prop, foreign, fields)
+Define a *1-1* or *N-1* relation to a foreign Model `foreign`, stored in the local field `prop`.
+
+Arguments:
+
+* `prop: String`: Name of the local property to handle the related entity in. This also becomes the name of the relation.
+* `foreign: Model`: The foreign Model
+* `fields: String|Array.<String>|Object`: Name of the common Primary Key field, or an array of common fields, or an object with the fields' mapping:
+
+    ```js
+   Article.hasOne('author', User, 'user_id');
+   Article.hasOne('author', User, { 'user_id': 'id' });
+    ```
+
+After a relation was defined, the local model's `prop` field will be used for loading & saving the related entity.
+
 #### Model.hasMany(prop, foreign, fields)
+Define a *1-N* relation to a foreign Model.
+
+Same as `hasOne`, but handles an array of related entities.
+
+
 
 ### Handling Related Entities
 
 #### Model.loadRelated(entities, prop, fields?, sort?, options?):Q
-#### Model.saveRelated(entities, prop, options?):Q
-#### Model.removeRelated(entities, prop, options?):Q
-#### Model.withRelated(prop, ...):Model
+For the given entities, load their related entities as defined by the `prop` relation.
 
+Arguments:
+
+* `entities: Object|Array.<Object>`: Entity of the current model, or an array of them
+* `prop: String|Array.<String>|undefined`: The relation name to load, or multiple relation names as an array.
+
+    When `undefined` is given, all available relations are loaded.
+
+    You can also load nested relations using the '.'-notation: `'articles.comments'` (see [Model.withRelated](#modelwithrelatedprop-model)).
+* `fields: String|Object|MissyProjection?`: Fields projection for the related entities. Optional.
+
+    With the help of this field, you can load partial related entities.
+
+* `sort: String|Object|Array|MissySort?`: Sort specification for the related entities. Optional.
+* `options: Object?`: Driver-dependent options for the related [`Model.find()`](#modelfindcriteria-fields-sort-optionsq) method. Optional.
+
+Relations are effectively loaded with a single query per relation, irrespective to the number of host entities.
+
+After the method is executed, all `entities` will have the `prop` property populated with the related entities:
+
+* For `hasOne`, this is a single entity, or `undefined` when no related entity exists.
+* For `hasMany`, this is always an array, possibly - empty.
+
+#### Model.saveRelated(entities, prop, options?):Q
+For the given entities, save their related entities as defined by the `prop` relation.
+
+Arguments:
+
+* `entities: Object|Array.<Object>`: Entity of the current model, or an array of them
+* `prop: String|Array.<String>|undefined`: The relation name to save, or multiple relation names as an array.
+
+    When `undefined` is given, all available relations are saved.
+
+    You can also save nested relations using the '.'-notation: `'articles.comments'` (see [Model.withRelated](#modelwithrelatedprop-model)).
+
+* `options: Object?`: Driver-dependent options for the related [`Model.save()`](#modelsaveentities-optionsq) method. Optional.
+
+This method automatically sets the foreign keys on the related entities and saves them to the DB.
+
+#### Model.removeRelated(entities, prop, options?):Q
+For the given entities, remove their related entities as defined by the `prop` relation.
+
+Arguments:
+
+* `entities: Object|Array.<Object>`: Entity of the current model, or an array of them
+* `prop: String|Array.<String>|undefined`: (same as above)
+* `options: Object?`: Driver-dependent options for the related [`Model.removeQuery()`](#modelremovequerycriteria-optionsq) method. Optional.
+
+This method removes all entities that are related to this one with the specified relation.
+
+#### Model.withRelated(prop, ...):Model
+Automatically process the related entities with the next query:
+
+* - find(), findOne(): load related entities
+* - insert(), update(), save(): save related entities (replaces them & removes the missing ones)
+* - remove(): remove related entities
+
+In fact, this method just stashes the arguments for loadRelated(), saveRelated(), removeRelated(), and calls the
+corresponding method in the subsequent query:
+
+* `Model.withRelated(prop, fields, sort, options)` when going to load entities
+* `Model.withRelated(prop, options)` when going to save entities
+* `Model.withRelated(prop, options)` when going to remove entities
+
+See examples below.
+
+
+
+### Example
+
+For instance, having the following schema:
+
+```js
+var User = schema.define('User', {
+    id: Number,
+    login: String
+});
+
+var Article = schema.define('Article', {
+    id: Number,
+    user_id: Number,
+    title: String
+    text: String
+});
+
+var Comment = schema.define('Comment', {
+    id: Number,
+    user_id: Number,
+    article_id: Number,
+    ctime: Date,
+    text: String,
+});
+
+// Define relations
+User.hasMany('articles', Article, {'id': 'user_id'});
+Article.hasMany('comments', Comment, { 'id' : 'article_id' });
+
+Article.hasOne('author', User, {'user_id': 'id'});
+Comment.hasOne('article', Article, {'article_id': 'id'});
+Comment.hasOne('author', User, {'user_id': 'id'});
+```
+
+#### Saving Related Rntities
+
+```js
+User
+    .withRelated('articles') // process the named relation in the subsequent query
+    .save([
+        {
+            login: 'dizzy',
+            articles: [
+                // When Dizzy gets an id, the related entities will use it
+                { title: 'First post', text: 'Welcome to my page' },
+                { title: 'Second post', text: 'Welcome to my page' },
+            ]
+        }
+    ])
+    .then(function(){
+        // 'dizzy' saved, with 2 posts
+    });
+```
+
+#### Loading Related Rntities
+
+```js
+User
+    .withRelated('articles') // load articles into the `articles` field
+    .withRelated('articles.comments', {}, { ctime: -1 }) // load comments for each article, sorted (nested relation)
+    .find({ age: { $gt: 18 } })
+    .then(function(users){
+        users[0]; // user
+        users[0].articles; // her articles
+        users[0].articles[0].comments; // comments for each article
+    });
+```
+
+#### Removing Related Rntities
+
+```js
+User
+    .withRelated('articles')
+    .remove({ id: 1 })
+    .then(function(user){
+        // User with id=1 removed, as well as her articles
+    });
+```
 
 
 
@@ -1441,3 +1606,11 @@ Recipes
 
 Validation
 ----------
+
+Missy does not support any validation out of the box, but you're free to choose any external validation engine.
+
+The current approach is to install the validation procedure into the [`beforeExport` Model hook](#converter-hooks)
+and check entities that are saved or updated. Note that this approach won't validate entities modified with
+[Model.updateQuery](#modelupdatequerycriteria-update-optionsq), as this method does not handle full entities!
+
+An example is on its way.
