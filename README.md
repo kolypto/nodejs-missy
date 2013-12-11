@@ -8,16 +8,17 @@ Whenever you need a truly flexible, lightweight DB tool - she's here for you.
 Quick overview:
 
 * Database-agnostic. Currently, PostgreSQL and MongoDB are supported
-* Does not handle DB connections: you can customize & use the client of your choice
+* Allows to customize the DB client object
 * Full CRUD operations support
-* The support for custom data types
-* Absolutely no limitations on the underlying schema
+* Custom update/remove operations
+* Easy custom data types
+* Absolutely no limitations on the underlying schema and keys
 * Model events & hooks for full control
 * Rich data selection control: projections, limit/offset, sorting
-* Model relations, even between databases
-* Honors custom fields not defined in the model: useful for schema-less databases like MongoDB
+* Model relations, even across databases
+* Supports schema-less NoSQL documents with custom fields
 * MongoDB-style API
-* Reliable DB reconnecting ; delaying query execution until it connects (optional)
+* Reliable DB connection handling
 * Promise-based: uses the [q](https://npmjs.org/package/q) package
 * Amazingly simple and well-structured
 * Documented and rich on comments
