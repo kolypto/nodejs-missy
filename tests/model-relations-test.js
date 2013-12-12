@@ -91,6 +91,19 @@ exports.testStructure = function(test){
     test.deepEqual(Device.relations.messages.fields, { 'type':'device_type', 'sn':'device_sn' });
     test.deepEqual(Message.relations.device.fields, { 'device_type':'type', 'device_sn':'sn' });
 
+    // Should throw an error
+    test.throws(function(){
+        User.hasOne('any', {}, ['id']);
+    }, errors.MissyRelationError);
+
+    test.throws(function(){
+        User.hasOne('any', Profile, {id:'???'});
+    }, errors.MissyRelationError);
+
+    test.throws(function(){
+        User.hasOne('any', Profile, {'???':'id'});
+    }, errors.MissyRelationError);
+
     test.done();
 };
 
