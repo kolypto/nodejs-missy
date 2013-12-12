@@ -330,6 +330,7 @@ Missy defines some built-in type handlers in *lib/types/*:
 | any         | undefined        | *              | undefined         | No-op converter to use the value as is                        |
 | string      | String           | `String,null`  | `'', null`        | Ensure a string, or `null`                                    |
 | number      | Number           | `Number,null`  | `0, null`         | Ensure a number, or `null`                                    |
+| boolean     | Boolean          | `Boolean,null` | `false, null`     | Ensure a boolean, or `null`                                   |
 | date        | Date             | `Date,null`    | `null`            | Convert to JS `Date`, or `null`                               |
 | object      | Object           | `Object,null`  | `{}, null`        | Use a JS `Object`, or `null`.                                 |
 | array       | Array            | `Array,null`   | `[], null`        | Ensure an array, or `null`. Creates arrays from scalar values |
@@ -338,6 +339,14 @@ Missy defines some built-in type handlers in *lib/types/*:
 Note: most built-in types allow `null` value only when the field is not defined as `required` (see below).
 
 Note: DB drivers may define own type handlers and even redefine standard types for all models handled by the driver.
+
+Also, the following aliases are defined:
+
+| Alias                                     | Definition                        |
+|-------------------------------------------|-----------------------------------|
+| bool                                      | `{ type: 'boolean' }`             |
+| int                                       | `{ type: 'number' }`              |
+| float                                     | `{ type: 'number' }`              |
 
 ### Custom Type Handlers
 

@@ -38,7 +38,8 @@ exports.testConverter = function(test){
         roles: Array,
         json: { type: 'json' },
         any: undefined,
-        smile: { type: 'smile' }
+        smile: { type: 'smile' },
+        enabled: Boolean
     }, {
         // table: 'users'
         // pk: 'id'
@@ -63,7 +64,7 @@ exports.testConverter = function(test){
         required: false, // default
         entityPrototype: undefined // default
     });
-    test.deepEqual(Object.keys(User.fields), ['id','name','login','ctime','obj','roles','json','any', 'smile']);
+    test.deepEqual(Object.keys(User.fields), ['id','name','login','ctime','obj','roles','json','any', 'smile','enabled']);
     test.deepEqual(User.fields.id, { name: 'id', type: 'number', required: false, _model: User, _typeHandler: schema.types['number'] });
     test.deepEqual(User.fields.name, { name: 'name', type: 'string', required: false, _model: User, _typeHandler: schema.types['string'] });
     test.deepEqual(User.fields.login, { name: 'login', type: 'string', required: true, _model: User, _typeHandler: schema.types['string'] });
@@ -140,6 +141,9 @@ exports.testConverter = function(test){
     testEntityImport({ any: [1,{a:1}] }, { any: [1,{a:1}] }); // ok
 
     testEntityImport({ smile: 123 }, { smile: 123 }); // ok
+    testEntityImport({ enabled: 'true' }, { enabled: true }); // ok
+    testEntityImport({ enabled: true }, { enabled: true }); // ok
+    testEntityImport({ enabled: 1 }, { enabled: true }); // ok
 
     // Test converter: Save
     var testEntityExport = function(entity, expected){
@@ -196,6 +200,10 @@ exports.testConverter = function(test){
     testEntityExport({ any: [1,{a:1}] }, { any: [1,{a:1}] }); // ok
 
     testEntityExport({ smile: 123 }, { smile: '123 :)' }); // overwritten
+
+    testEntityExport({ enabled: 'f' }, { enabled: false }); // ok
+    testEntityExport({ enabled: false }, { enabled: false }); // ok
+    testEntityExport({ enabled: 0 }, { enabled: false }); // ok
 
     test.done();
 };
