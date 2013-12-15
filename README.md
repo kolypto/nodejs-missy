@@ -1,3 +1,5 @@
+[![Version](https://badge.fury.io/js/missy.png)](https://npmjs.org/package/missy)
+[![Dependency Status](https://gemnasium.com/kolypto/nodejs-missy.png)](https://gemnasium.com/kolypto/nodejs-missy)
 [![Build Status](https://travis-ci.org/kolypto/nodejs-missy.png?branch=master)](https://travis-ci.org/kolypto/nodejs-missy)
 
 Missy
